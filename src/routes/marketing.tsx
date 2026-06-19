@@ -351,7 +351,7 @@ function PlanDialog({ idea, onClose }: { idea: PostIdea | null; onClose: () => v
 function CalendarTab() {
   const posts = useStore((s) => s.posts);
   const [calView, setCalView] = useState<"grid" | "agenda">("grid");
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<string | null>(null);
   const [selected, setSelected] = useState<SocialPost | null>(null);
 
   return (
@@ -363,12 +363,14 @@ function CalendarTab() {
             <TabsTrigger value="agenda">Agenda</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" />Générer un post</Button>
+        <Button onClick={() => setCreating(new Date().toISOString().slice(0, 10))}><Plus className="h-4 w-4" />Générer un post</Button>
       </div>
 
-      {calView === "grid" ? <CalendarGrid posts={posts} onSelect={setSelected} /> : <AgendaList posts={posts} onSelect={setSelected} />}
+      {calView === "grid"
+        ? <CalendarGrid posts={posts} onSelect={setSelected} onCreateOn={(d) => setCreating(d)} />
+        : <AgendaList posts={posts} onSelect={setSelected} />}
 
-      <CreatePostDialog open={creating} onClose={() => setCreating(false)} />
+      <CreatePostDialog open={!!creating} initialDate={creating || ""} onClose={() => setCreating(null)} />
       <PostDialog post={selected} onClose={() => setSelected(null)} />
     </div>
   );
