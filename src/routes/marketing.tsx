@@ -511,10 +511,10 @@ function CreatePostDialog({ open, onClose, initialDate = "" }: { open: boolean; 
   const finalize = (status: "scheduled" | "published") => {
     actions.addPost({
       id: `P-${Date.now()}`,
-      platforms, title, content: description, hashtags, date, status,
+      platforms, title, content: description, hashtags, date, time, status,
       images: images.filter(Boolean), tone,
     });
-    toast.success(status === "published" ? "Post publié" : `Post planifié au ${date}`);
+    toast.success(status === "published" ? "Post publié" : `Post planifié le ${date} à ${time}`);
     reset();
     onClose();
   };
