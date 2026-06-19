@@ -86,7 +86,7 @@ function Dashboard() {
           <Button variant="outline" onClick={handleGenerateLeads}>
             <Sparkles className="h-4 w-4" /> Générer leads
           </Button>
-          <Button onClick={() => toast.success("Campagne IA lancée", { description: "Génération de 12 posts multi-canaux en cours…" })}>
+          <Button onClick={() => { toast.success("Campagne IA lancée", { description: "Génération de 12 posts multi-canaux en cours…" }); navigate({ to: "/marketing" }); }}>
             <Megaphone className="h-4 w-4" /> Lancer campagne IA
           </Button>
         </div>
