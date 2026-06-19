@@ -30,10 +30,10 @@ function Dashboard() {
   const pipeline = leads.filter((l) => l.status !== "lost" && l.status !== "won").reduce((s, l) => s + l.value, 0);
 
   const kpis = [
-    { label: "Leads générés", value: leads.length, delta: "+12%", up: true, icon: Users, iconClass: "bg-info/15 text-info" },
-    { label: "Leads qualifiés", value: qualified, delta: "+8%", up: true, icon: Target, iconClass: "bg-warning/20 text-warning-foreground" },
-    { label: "Taux de conversion", value: `${conversion}%`, delta: "+3.2pts", up: true, icon: TrendingUp, iconClass: "bg-success/15 text-success" },
-    { label: "Commandes livrées", value: `${delivered}/${orders.length}`, delta: `${delayed} retard`, up: delayed === 0, icon: Package, iconClass: delayed > 0 ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success" },
+    { label: "Leads générés", value: leads.length, delta: "+12%", up: true, icon: Users, iconClass: "bg-info/15 text-info", to: "/leads" as const },
+    { label: "Leads qualifiés", value: qualified, delta: "+8%", up: true, icon: Target, iconClass: "bg-warning/20 text-warning-foreground", to: "/leads" as const },
+    { label: "Taux de conversion", value: `${conversion}%`, delta: "+3.2pts", up: true, icon: TrendingUp, iconClass: "bg-success/15 text-success", to: "/leads" as const },
+    { label: "Commandes livrées", value: `${delivered}/${orders.length}`, delta: `${delayed} retard`, up: delayed === 0, icon: Package, iconClass: delayed > 0 ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success", to: "/orders" as const },
   ];
 
   const handleRefresh = () => {
