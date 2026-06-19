@@ -50,7 +50,12 @@ export const initialLeads: Lead[] = [
 ];
 
 export type OrderStatus = "preparation" | "in_progress" | "delivered" | "delayed";
-export type OrderItem = { name: string; qty: number; price: number };
+export type OrderItem = { name: string; qty: number; price: number; stock?: number };
+export type OrderPriority = "low" | "normal" | "high";
+export type Warehouse = "Tanger" | "Rabat" | "Marrakech" | "Agadir";
+export type InvoiceStatus = "draft" | "sent" | "pending" | "paid" | "late";
+
+export const WAREHOUSES: Warehouse[] = ["Tanger", "Rabat", "Marrakech", "Agadir"];
 
 export type WorkflowStepKey =
   | "creation"
@@ -64,7 +69,7 @@ export type WorkflowStepKey =
   | "cloture";
 
 export type WorkflowTask = { label: string; done: boolean };
-export type WorkflowStepState = { tasks: WorkflowTask[] };
+export type WorkflowStepState = { tasks: WorkflowTask[]; owner?: string; date?: string; comment?: string; durationDays?: number };
 export type OrderWorkflow = Record<WorkflowStepKey, WorkflowStepState>;
 
 export const WORKFLOW_STEPS: { key: WorkflowStepKey; label: string; tasks: string[] }[] = [
@@ -79,6 +84,10 @@ export const WORKFLOW_STEPS: { key: WorkflowStepKey; label: string; tasks: strin
   { key: "cloture", label: "Commande Clôturée", tasks: ["Processus terminé", "Archivage automatique"] },
 ];
 
+export type ClientInfo = { ice: string; address: string; phone: string; email: string };
+export type Communication = { id: string; kind: "email" | "whatsapp" | "call" | "note"; author: string; date: string; content: string };
+export type AISuggestion = { tone: "info" | "warning" | "danger" | "success"; text: string };
+
 export type Order = {
   id: string;
   client: string;
@@ -92,6 +101,19 @@ export type Order = {
   driver: string;
   details: OrderItem[];
   workflow: OrderWorkflow;
+  priority: OrderPriority;
+  commercial: string;
+  adv: string;
+  warehouse: Warehouse;
+  clientInfo: ClientInfo;
+  dueDate: string;
+  subtotal: number;
+  tax: number;
+  paid: number;
+  currentStep: WorkflowStepKey;
+  communications: Communication[];
+  aiSuggestions: AISuggestion[];
+  invoiceStatus: InvoiceStatus;
 };
 
 export const ORDER_STATUSES: { key: OrderStatus; label: string; tone: "muted" | "info" | "warning" | "success" | "destructive" }[] = [
@@ -101,10 +123,18 @@ export const ORDER_STATUSES: { key: OrderStatus; label: string; tone: "muted" | 
   { key: "delayed", label: "En retard", tone: "destructive" },
 ];
 
+export const INVOICE_STATUSES: { key: InvoiceStatus; label: string; tone: "muted" | "info" | "warning" | "success" | "destructive" }[] = [
+  { key: "draft", label: "Brouillon", tone: "muted" },
+  { key: "sent", label: "Envoyée", tone: "info" },
+  { key: "pending", label: "En attente", tone: "warning" },
+  { key: "paid", label: "Payée", tone: "success" },
+  { key: "late", label: "En retard", tone: "destructive" },
+];
+
 const sampleItems = (): OrderItem[] => [
-  { name: "Huile d'olive extra vierge 5L", qty: 12, price: 320 },
-  { name: "Épices Ras El Hanout 1kg", qty: 8, price: 180 },
-  { name: "Riz Basmati premium 25kg", qty: 4, price: 650 },
+  { name: "Huile d'olive extra vierge 5L", qty: 12, price: 320, stock: 84 },
+  { name: "Épices Ras El Hanout 1kg", qty: 8, price: 180, stock: 220 },
+  { name: "Riz Basmati premium 25kg", qty: 4, price: 650, stock: 36 },
 ];
 
 const STATUS_TO_STEP_INDEX: Record<OrderStatus, number> = {
@@ -113,6 +143,8 @@ const STATUS_TO_STEP_INDEX: Record<OrderStatus, number> = {
   delivered: 8,
   delayed: 3,
 };
+
+const STEP_BY_INDEX: WorkflowStepKey[] = WORKFLOW_STEPS.map((s) => s.key);
 
 export function buildWorkflow(status: OrderStatus): OrderWorkflow {
   const cutoff = STATUS_TO_STEP_INDEX[status];
@@ -128,25 +160,76 @@ export function buildWorkflow(status: OrderStatus): OrderWorkflow {
         }
         return { label, done };
       }),
+      owner: i < cutoff ? ["Ahmed B.", "Sara M.", "Karim L.", "Younes E."][i % 4] : undefined,
+      date: i < cutoff ? `2026-06-${String(10 + i).padStart(2, "0")}` : undefined,
+      durationDays: i < cutoff ? 1 + (i % 3) : undefined,
     };
   });
   return wf;
 }
 
-const mk = (o: Omit<Order, "workflow">): Order => ({ ...o, workflow: buildWorkflow(o.status) });
+type Seed = {
+  id: string; client: string; city: string; amount: number; items: number; status: OrderStatus; date: string;
+  stage: Order["stage"]; address: string; driver: string;
+  priority: OrderPriority; commercial: string; adv: string; warehouse: Warehouse;
+  ice: string; phone: string; email: string; dueDate: string;
+  invoiceStatus: InvoiceStatus;
+};
+
+const mk = (s: Seed): Order => {
+  const wf = buildWorkflow(s.status);
+  const cutoff = STATUS_TO_STEP_INDEX[s.status];
+  const currentStep = STEP_BY_INDEX[Math.min(cutoff, 8)];
+  const subtotal = Math.round(s.amount / 1.2);
+  const tax = s.amount - subtotal;
+  const paid = s.invoiceStatus === "paid" ? s.amount : s.invoiceStatus === "pending" ? Math.round(s.amount * 0.3) : 0;
+  const details = sampleItems();
+  return {
+    id: s.id, client: s.client, city: s.city, amount: s.amount, items: s.items, status: s.status, date: s.date,
+    stage: s.stage, address: s.address, driver: s.driver, details, workflow: wf,
+    priority: s.priority, commercial: s.commercial, adv: s.adv, warehouse: s.warehouse,
+    clientInfo: { ice: s.ice, address: s.address, phone: s.phone, email: s.email },
+    dueDate: s.dueDate, subtotal, tax, paid, currentStep,
+    invoiceStatus: s.invoiceStatus,
+    communications: [
+      { id: "c1", kind: "email", author: "Système", date: s.date, content: `Confirmation de commande ${s.id} envoyée à ${s.email}.` },
+      { id: "c2", kind: "note", author: s.commercial, date: s.date, content: "Client prioritaire, suivi rapproché demandé." },
+      { id: "c3", kind: "whatsapp", author: s.commercial, date: s.date, content: "Bonjour, merci pour votre confiance. Livraison prévue selon planning." },
+    ],
+    aiSuggestions: buildSuggestions(s),
+  };
+};
+
+function buildSuggestions(s: Seed): AISuggestion[] {
+  const out: AISuggestion[] = [];
+  if (s.status === "delayed") out.push({ tone: "danger", text: `Livraison ${s.id} en retard — relancer le transporteur.` });
+  if (s.stage === "adv") out.push({ tone: "warning", text: "Validation ADV en attente depuis 2 jours." });
+  if (s.warehouse === "Tanger" && s.amount > 100000) out.push({ tone: "danger", text: "Stock insuffisant prévu au dépôt de Tanger." });
+  if (s.status === "in_progress") out.push({ tone: "success", text: "Livraison prévue dans les prochains jours." });
+  if (s.invoiceStatus === "pending" || s.invoiceStatus === "late") out.push({ tone: "warning", text: "Facture à envoyer / relancer." });
+  if (out.length === 0) out.push({ tone: "info", text: "Aucune action urgente sur cette commande." });
+  return out;
+}
 
 export const initialOrders: Order[] = [
-  mk({ id: "CMD-2401", client: "Hôtel Atlas Marrakech", city: "Marrakech", amount: 84500, items: 24, status: "delivered", date: "2026-06-12", stage: "livraison", address: "Av. Mohammed VI, Marrakech", driver: "Hassan B.", details: sampleItems() }),
-  mk({ id: "CMD-2402", client: "Marjane Holding", city: "Casablanca", amount: 215000, items: 56, status: "in_progress", date: "2026-06-15", stage: "logistique", address: "Plateforme Marjane Aïn Sebaâ", driver: "Karim M.", details: sampleItems() }),
-  mk({ id: "CMD-2403", client: "Sofitel Tanger", city: "Tanger", amount: 132000, items: 38, status: "preparation", date: "2026-06-17", stage: "adv", address: "Sofitel Tanger City Center", driver: "—", details: sampleItems() }),
-  mk({ id: "CMD-2404", client: "Restaurant Dar Zellij", city: "Fès", amount: 23400, items: 12, status: "delayed", date: "2026-06-10", stage: "logistique", address: "Médina, Fès", driver: "Youssef A.", details: sampleItems() }),
-  mk({ id: "CMD-2405", client: "Traiteur Royal", city: "Casablanca", amount: 56800, items: 19, status: "in_progress", date: "2026-06-16", stage: "logistique", address: "Maârif, Casablanca", driver: "Mohamed R.", details: sampleItems() }),
-  mk({ id: "CMD-2406", client: "Cantine OCP", city: "Agadir", amount: 98700, items: 41, status: "delivered", date: "2026-06-11", stage: "livraison", address: "Site OCP Agadir", driver: "Said L.", details: sampleItems() }),
-  mk({ id: "CMD-2407", client: "Hôtel Hyatt Casa", city: "Casablanca", amount: 167000, items: 48, status: "preparation", date: "2026-06-18", stage: "commercial", address: "Place des Nations Unies", driver: "—", details: sampleItems() }),
-  mk({ id: "CMD-2408", client: "Carrefour Market", city: "Tanger", amount: 189500, items: 62, status: "in_progress", date: "2026-06-17", stage: "adv", address: "Carrefour Ibn Battouta", driver: "Rachid K.", details: sampleItems() }),
-  mk({ id: "CMD-2409", client: "Mövenpick Tanger", city: "Tanger", amount: 74200, items: 21, status: "delayed", date: "2026-06-09", stage: "livraison", address: "Mövenpick Tanger Bay", driver: "Adil S.", details: sampleItems() }),
-  mk({ id: "CMD-2410", client: "Riad Yasmine", city: "Marrakech", amount: 31200, items: 14, status: "preparation", date: "2026-06-19", stage: "commercial", address: "Médina de Marrakech", driver: "—", details: sampleItems() }),
+  mk({ id: "CMD-2401", client: "Hôtel Atlas Marrakech", city: "Marrakech", amount: 84500, items: 24, status: "delivered", date: "2026-06-12", stage: "livraison", address: "Av. Mohammed VI, Marrakech", driver: "Hassan B.", priority: "normal", commercial: "Ahmed Benali", adv: "Sara M.", warehouse: "Marrakech", ice: "001234567000045", phone: "+212 524 33 44 55", email: "f.benali@atlas-mrk.ma", dueDate: "2026-06-20", invoiceStatus: "paid" }),
+  mk({ id: "CMD-2402", client: "Marjane Holding", city: "Casablanca", amount: 215000, items: 56, status: "in_progress", date: "2026-06-15", stage: "logistique", address: "Plateforme Marjane Aïn Sebaâ", driver: "Karim M.", priority: "high", commercial: "Ahmed Benali", adv: "Sara M.", warehouse: "Rabat", ice: "001112233000010", phone: "+212 522 99 88 77", email: "k.tazi@marjane.ma", dueDate: "2026-06-25", invoiceStatus: "sent" }),
+  mk({ id: "CMD-2403", client: "Sofitel Tanger", city: "Tanger", amount: 132000, items: 38, status: "preparation", date: "2026-06-17", stage: "adv", address: "Sofitel Tanger City Center", driver: "—", priority: "high", commercial: "Najat Idrissi", adv: "Karim L.", warehouse: "Tanger", ice: "002334455000012", phone: "+212 539 34 12 00", email: "m.alaoui@sofitel-tng.ma", dueDate: "2026-06-24", invoiceStatus: "draft" }),
+  mk({ id: "CMD-2404", client: "Restaurant Dar Zellij", city: "Fès", amount: 23400, items: 12, status: "delayed", date: "2026-06-10", stage: "logistique", address: "Médina, Fès", driver: "Youssef A.", priority: "high", commercial: "Najat Idrissi", adv: "Sara M.", warehouse: "Rabat", ice: "003445566000022", phone: "+212 535 12 34 56", email: "contact@darzellij.ma", dueDate: "2026-06-15", invoiceStatus: "late" }),
+  mk({ id: "CMD-2405", client: "Traiteur Royal", city: "Casablanca", amount: 56800, items: 19, status: "in_progress", date: "2026-06-16", stage: "logistique", address: "Maârif, Casablanca", driver: "Mohamed R.", priority: "normal", commercial: "Ahmed Benali", adv: "Karim L.", warehouse: "Rabat", ice: "004556677000033", phone: "+212 522 55 66 77", email: "najat@traiteurroyal.ma", dueDate: "2026-06-23", invoiceStatus: "pending" }),
+  mk({ id: "CMD-2406", client: "Cantine OCP", city: "Agadir", amount: 98700, items: 41, status: "delivered", date: "2026-06-11", stage: "livraison", address: "Site OCP Agadir", driver: "Said L.", priority: "normal", commercial: "Younes E.", adv: "Sara M.", warehouse: "Agadir", ice: "005667788000044", phone: "+212 528 11 22 33", email: "h.berrada@ocp.ma", dueDate: "2026-06-18", invoiceStatus: "paid" }),
+  mk({ id: "CMD-2407", client: "Hôtel Hyatt Casa", city: "Casablanca", amount: 167000, items: 48, status: "preparation", date: "2026-06-18", stage: "commercial", address: "Place des Nations Unies", driver: "—", priority: "high", commercial: "Ahmed Benali", adv: "Karim L.", warehouse: "Rabat", ice: "006778899000055", phone: "+212 522 11 00 99", email: "t.benj@hyatt.ma", dueDate: "2026-06-27", invoiceStatus: "draft" }),
+  mk({ id: "CMD-2408", client: "Carrefour Market", city: "Tanger", amount: 189500, items: 62, status: "in_progress", date: "2026-06-17", stage: "adv", address: "Carrefour Ibn Battouta", driver: "Rachid K.", priority: "high", commercial: "Najat Idrissi", adv: "Sara M.", warehouse: "Tanger", ice: "007889900000066", phone: "+212 539 88 99 00", email: "s.lahlou@carrefour.ma", dueDate: "2026-06-25", invoiceStatus: "sent" }),
+  mk({ id: "CMD-2409", client: "Mövenpick Tanger", city: "Tanger", amount: 74200, items: 21, status: "delayed", date: "2026-06-09", stage: "livraison", address: "Mövenpick Tanger Bay", driver: "Adil S.", priority: "high", commercial: "Najat Idrissi", adv: "Karim L.", warehouse: "Tanger", ice: "008990011000077", phone: "+212 539 56 78 90", email: "a.ouazzani@movenpick.ma", dueDate: "2026-06-14", invoiceStatus: "late" }),
+  mk({ id: "CMD-2410", client: "Riad Yasmine", city: "Marrakech", amount: 31200, items: 14, status: "preparation", date: "2026-06-19", stage: "commercial", address: "Médina de Marrakech", driver: "—", priority: "low", commercial: "Younes E.", adv: "Sara M.", warehouse: "Marrakech", ice: "009001122000088", phone: "+212 524 44 55 66", email: "imane@riadyasmine.ma", dueDate: "2026-06-28", invoiceStatus: "draft" }),
 ];
+
+export const WAREHOUSE_STOCK: Record<Warehouse, { capacity: number; available: number }> = {
+  Tanger: { capacity: 1200, available: 320 },
+  Rabat: { capacity: 1500, available: 940 },
+  Marrakech: { capacity: 900, available: 610 },
+  Agadir: { capacity: 700, available: 480 },
+};
 
 export type Email = {
   id: string;
