@@ -134,10 +134,10 @@ function Dashboard() {
           <CardHeader><CardTitle className="text-base">Activité récente</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {recentActivity.map((a, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm">
+              <button key={i} onClick={() => navigate({ to: a.to })} className="flex w-full items-start gap-2 rounded-md p-1 text-left text-sm transition-colors hover:bg-muted/60">
                 <StatusBadge tone={a.tone}>•</StatusBadge>
                 <span className="flex-1 text-muted-foreground">{a.text}</span>
-              </div>
+              </button>
             ))}
           </CardContent>
         </Card>
