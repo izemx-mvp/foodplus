@@ -564,6 +564,7 @@ function CreatePostDialog({ open, onClose }: { open: boolean; onClose: () => voi
 }
 
 function PostDialog({ post, onClose }: { post: SocialPost | null; onClose: () => void }) {
+  const [editDate, setEditDate] = useState("");
   return (
     <Dialog open={!!post} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -574,7 +575,7 @@ function PostDialog({ post, onClose }: { post: SocialPost | null; onClose: () =>
                 <span>{post.title}</span>
                 <Button size="icon" variant="ghost" onClick={onClose}><X className="h-4 w-4" /></Button>
               </DialogTitle>
-              <DialogDescription>{post.date} · {post.tone}</DialogDescription>
+              <DialogDescription>{post.date} · {post.tone} · <StatusBadge tone={post.status === "published" ? "success" : post.status === "scheduled" ? "info" : post.status === "failed" ? "destructive" : "muted"}>{post.status === "published" ? "Publié" : post.status === "scheduled" ? "Planifié" : post.status === "failed" ? "Échec" : "Brouillon"}</StatusBadge></DialogDescription>
             </DialogHeader>
             <div className="space-y-3 text-sm">
               {post.images.length > 0 && (
@@ -595,10 +596,31 @@ function PostDialog({ post, onClose }: { post: SocialPost | null; onClose: () =>
                 <p className="text-xs font-medium text-muted-foreground mb-1">Plateformes</p>
                 <div className="flex gap-1">{post.platforms.map((p) => <Badge key={p} variant="outline" className="gap-1">{platformIcon(p)}{p}</Badge>)}</div>
               </div>
-              <div className="flex gap-2">
+
+              {post.status !== "published" && (
+                <div className="rounded-md border p-3 space-y-2">
+                  <p className="text-xs font-medium flex items-center gap-1"><Calendar className="h-3 w-3" />Replanifier</p>
+                  <div className="flex gap-2">
+                    <Input type="date" value={editDate || post.date} onChange={(e) => setEditDate(e.target.value)} className="max-w-[200px]" />
+                    <Button variant="outline" onClick={() => {
+                      const d = editDate || post.date;
+                      actions.updatePost(post.id, { date: d, status: "scheduled" });
+                      toast.success(`Post replanifié au ${d}`);
+                      onClose();
+                    }}>Mettre à jour</Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2">
                 {post.status !== "published" && (
                   <Button onClick={() => { actions.updatePost(post.id, { status: "published" }); toast.success("Post publié"); onClose(); }}>
                     <Send className="h-4 w-4" />Publier maintenant
+                  </Button>
+                )}
+                {post.status === "published" && (
+                  <Button variant="outline" onClick={() => { actions.updatePost(post.id, { status: "draft" }); toast.success("Repassé en brouillon"); onClose(); }}>
+                    Repasser en brouillon
                   </Button>
                 )}
                 <Button variant="outline" onClick={() => { actions.removePost(post.id); toast.success("Post supprimé"); onClose(); }}>
