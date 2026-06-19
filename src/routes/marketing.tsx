@@ -415,8 +415,11 @@ function CalendarGrid({ posts, onSelect, onCreateOn }: { posts: SocialPost[]; on
             const items = byDay[iso] || [];
             const isToday = iso === today.toISOString().slice(0, 10);
             return (
-              <div key={i} className={`h-24 rounded border p-1 overflow-hidden ${isToday ? "border-primary bg-primary/5" : "bg-card"}`}>
-                <div className="text-[10px] text-muted-foreground">{d}</div>
+              <div key={i} className={`group h-24 rounded border p-1 overflow-hidden relative ${isToday ? "border-primary bg-primary/5" : "bg-card"}`}>
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] text-muted-foreground">{d}</div>
+                  <button onClick={() => onCreateOn(iso)} title="Planifier un post ce jour" className="opacity-0 group-hover:opacity-100 transition rounded hover:bg-primary/10 text-primary p-0.5"><Plus className="h-3 w-3" /></button>
+                </div>
                 <div className="space-y-0.5">
                   {items.slice(0, 2).map((p) => (
                     <button key={p.id} onClick={() => onSelect(p)} className="block w-full truncate rounded bg-primary/10 px-1 text-[10px] text-left text-primary hover:bg-primary/20">
