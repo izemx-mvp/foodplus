@@ -165,12 +165,22 @@ export const initialIdeas: PostIdea[] = [
   { id: "I5", title: "Infographie - notre empreinte logistique au Maroc", hook: "8 villes, 12 entrepôts, 200+ livraisons/jour.", suggestedPlatforms: ["linkedin", "facebook"], tone: "Professionnel" },
 ];
 
+export type PostFrequency = "daily" | "3xweek" | "weekly" | "monthly" | "off";
+
+export type IntegrationConfig = {
+  platform: SocialPlatform;
+  enabled: boolean;
+  tone: PostTone;
+  frequency: PostFrequency;
+};
+
 export type MarketingConfig = {
   website: string;
   logo: string;
   description: string;
   tone: PostTone;
-  frequency: "daily" | "3xweek" | "weekly" | "monthly";
+  frequency: PostFrequency;
+  integrations: IntegrationConfig[];
 };
 
 export const initialMarketingConfig: MarketingConfig = {
@@ -179,4 +189,12 @@ export const initialMarketingConfig: MarketingConfig = {
   description: "Foodplus, filiale du groupe LRUCH, est le distributeur agroalimentaire B2B de référence au Maroc. Nous accompagnons hôtels, restaurants, traiteurs et grande distribution avec une gamme premium de produits locaux et importés.",
   tone: "Premium",
   frequency: "3xweek",
+  integrations: [
+    { platform: "instagram", enabled: true, tone: "Convivial", frequency: "3xweek" },
+    { platform: "facebook", enabled: true, tone: "Convivial", frequency: "weekly" },
+    { platform: "linkedin", enabled: true, tone: "Professionnel", frequency: "weekly" },
+    { platform: "tiktok", enabled: false, tone: "Inspirant", frequency: "weekly" },
+    { platform: "x", enabled: false, tone: "Professionnel", frequency: "daily" },
+  ],
 };
+
