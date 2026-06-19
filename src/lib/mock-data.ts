@@ -98,6 +98,17 @@ export const TEAM: Record<TeamRole, string[]> = {
 export const ROLE_LABEL: Record<TeamRole, string> = {
   commercial: "Commercial", adv: "ADV", logistique: "Logistique", facturation: "Facturation",
 };
+export const STEP_ROLE: Record<WorkflowStepKey, TeamRole> = {
+  creation: "commercial",
+  validation_commerciale: "commercial",
+  validation_adv: "adv",
+  preparation_logistique: "logistique",
+  expedition: "logistique",
+  livraison: "logistique",
+  facturation: "facturation",
+  paiement: "facturation",
+  cloture: "facturation",
+};
 
 export type Order = {
   id: string;
@@ -191,6 +202,16 @@ const mk = (s: Seed): Order => {
   const wf = buildWorkflow(s.status);
   const cutoff = STATUS_TO_STEP_INDEX[s.status];
   const currentStep = STEP_BY_INDEX[Math.min(cutoff, 8)];
+  // Assign a default owner per step based on its role
+  const billingLead = TEAM.facturation[0];
+  (Object.keys(wf) as WorkflowStepKey[]).forEach((k) => {
+    const role = STEP_ROLE[k];
+    const fallback = role === "commercial" ? s.commercial
+      : role === "adv" ? s.adv
+      : role === "logistique" ? (s.driver && s.driver !== "—" ? s.driver : TEAM.logistique[0])
+      : billingLead;
+    wf[k] = { ...wf[k], owner: wf[k].owner ?? fallback };
+  });
   const subtotal = Math.round(s.amount / 1.2);
   const tax = s.amount - subtotal;
   const paid = s.invoiceStatus === "paid" ? s.amount : s.invoiceStatus === "pending" ? Math.round(s.amount * 0.3) : 0;

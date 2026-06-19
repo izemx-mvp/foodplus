@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, actions } from "@/lib/store";
 import {
-  ORDER_STATUSES, WORKFLOW_STEPS, WAREHOUSES, buildWorkflow, TEAM, ROLE_LABEL,
+  ORDER_STATUSES, WORKFLOW_STEPS, WAREHOUSES, buildWorkflow, TEAM, ROLE_LABEL, STEP_ROLE,
   type Order, type OrderStatus, type OrderPriority, type Warehouse, type WorkflowStepKey, type TeamRole,
 } from "@/lib/mock-data";
 import {
@@ -218,19 +218,19 @@ function OrdersTable({ orders, onSelect, on360 }: { orders: Order[]; onSelect: (
 }
 
 function currentResponsible(o: Order): { role: TeamRole; person: string } {
-  const idx = WORKFLOW_STEPS.findIndex((s) => s.key === o.currentStep);
-  if (idx <= 1) return { role: "commercial", person: o.commercial };
-  if (idx === 2) return { role: "adv", person: o.adv };
-  if (idx >= 3 && idx <= 5) return { role: "logistique", person: o.driver };
-  return { role: "facturation", person: TEAM.facturation[0] };
+  const role = STEP_ROLE[o.currentStep];
+  const fallback = role === "commercial" ? o.commercial
+    : role === "adv" ? o.adv
+    : role === "logistique" ? (o.driver && o.driver !== "—" ? o.driver : TEAM.logistique[0])
+    : TEAM.facturation[0];
+  return { role, person: o.workflow[o.currentStep].owner ?? fallback };
 }
 
 function nextResponsible(o: Order): { role: TeamRole; person: string } | null {
   const idx = WORKFLOW_STEPS.findIndex((s) => s.key === o.currentStep);
   if (idx >= WORKFLOW_STEPS.length - 1) return null;
   const nextKey = WORKFLOW_STEPS[idx + 1].key;
-  const fake = { ...o, currentStep: nextKey };
-  return currentResponsible(fake);
+  return currentResponsible({ ...o, currentStep: nextKey });
 }
 
 function TeamView({ orders, onPick }: { orders: Order[]; onPick: (person: string) => void }) {
@@ -482,7 +482,8 @@ function HorizontalWorkflow({ order }: { order: Order }) {
         const minIdx = Math.min(...stepIdxs);
         const status: "done" | "current" | "pending" = curIdx > maxIdx ? "done" : curIdx >= minIdx ? "current" : "pending";
         const days = st.key.reduce((n, k) => n + (order.workflow[k].durationDays ?? 0), 0);
-        const owner = st.role === "commercial" ? order.commercial : st.role === "adv" ? order.adv : st.role === "logistique" ? order.driver : TEAM.facturation[0];
+        const ownerStepKey = st.key.find((k) => order.workflow[k].owner) ?? st.key[0];
+        const owner = order.workflow[ownerStepKey].owner ?? "—";
         const tone = status === "done" ? "bg-success/15 text-success border-success/40"
           : status === "current" ? "bg-warning/15 text-warning-foreground border-warning/40"
           : "bg-muted/30 text-muted-foreground border-border";
@@ -715,15 +716,24 @@ function WorkflowTimeline({ order }: { order: Order }) {
                 </div>
                 {idx < WORKFLOW_STEPS.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
               </div>
-              <div className="flex-1 pb-3">
-                <div className="flex items-center justify-between">
+              <div className="flex-1 pb-3 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium">{s.label}</p>
                   <span className="text-[10px] text-muted-foreground">
-                    {st.owner ? `${st.owner} · ${st.date}` : isCurrent ? "En cours" : "À venir"}
+                    {st.date ?? (isCurrent ? "En cours" : "À venir")}
                     {st.durationDays ? ` · ${st.durationDays}j` : ""}
                   </span>
                 </div>
-                <ul className="mt-1.5 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="outline" className="text-[9px]">{ROLE_LABEL[STEP_ROLE[s.key]]}</Badge>
+                  <Select value={st.owner ?? ""} onValueChange={(v) => { actions.setStepOwner(order.id, s.key, v); toast.success(`${s.label} → ${v}`); }}>
+                    <SelectTrigger className="h-6 text-[11px] flex-1 max-w-[200px]"><SelectValue placeholder="Assigner…" /></SelectTrigger>
+                    <SelectContent>
+                      {TEAM[STEP_ROLE[s.key]].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <ul className="space-y-1">
                   {st.tasks.map((t, ti) => (
                     <li key={ti} className="flex items-start gap-2">
                       <Checkbox checked={t.done} onCheckedChange={() => actions.toggleOrderTask(order.id, s.key, ti)} className="mt-0.5" />
@@ -732,6 +742,7 @@ function WorkflowTimeline({ order }: { order: Order }) {
                   ))}
                 </ul>
               </div>
+
             </li>
           );
         })}
