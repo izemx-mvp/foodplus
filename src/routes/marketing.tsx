@@ -466,7 +466,7 @@ function AgendaList({ posts, onSelect }: { posts: SocialPost[]; onSelect: (p: So
   );
 }
 
-function CreatePostDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+function CreatePostDialog({ open, onClose, initialDate = "" }: { open: boolean; onClose: () => void; initialDate?: string }) {
   const cfg = useStore((s) => s.marketing);
   const [imageCount, setImageCount] = useState(1);
   const [images, setImages] = useState<string[]>([""]);
@@ -474,7 +474,8 @@ function CreatePostDialog({ open, onClose }: { open: boolean; onClose: () => voi
   const [description, setDescription] = useState("");
   const [title, setTitle] = useState("");
   const [platforms, setPlatforms] = useState<SocialPlatform[]>(["instagram"]);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(initialDate || new Date().toISOString().slice(0, 10));
+  useMemo(() => { if (initialDate) setDate(initialDate); }, [initialDate]);
 
   const setCount = (n: number) => {
     const v = Math.max(0, Math.min(10, n));
