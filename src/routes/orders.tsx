@@ -504,7 +504,7 @@ function WorkflowTimeline({ order }: { order: Order }) {
 
 function CommTab({ order }: { order: Order }) {
   const [text, setText] = useState("");
-  const KIND_ICON = { email: Mail, whatsapp: MessageSquare, call: Phone, note: FileText };
+  const KIND_ICON = { email: Mail, whatsapp: MessageSquare, call: Phone, note: FileText, assignment: UserCheck, system: Bell };
   return (
     <div className="space-y-3">
       <div className="rounded-md border p-3 space-y-2">
