@@ -716,15 +716,24 @@ function WorkflowTimeline({ order }: { order: Order }) {
                 </div>
                 {idx < WORKFLOW_STEPS.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
               </div>
-              <div className="flex-1 pb-3">
-                <div className="flex items-center justify-between">
+              <div className="flex-1 pb-3 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium">{s.label}</p>
                   <span className="text-[10px] text-muted-foreground">
-                    {st.owner ? `${st.owner} · ${st.date}` : isCurrent ? "En cours" : "À venir"}
+                    {st.date ?? (isCurrent ? "En cours" : "À venir")}
                     {st.durationDays ? ` · ${st.durationDays}j` : ""}
                   </span>
                 </div>
-                <ul className="mt-1.5 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="outline" className="text-[9px]">{ROLE_LABEL[STEP_ROLE[s.key]]}</Badge>
+                  <Select value={st.owner ?? ""} onValueChange={(v) => { actions.setStepOwner(order.id, s.key, v); toast.success(`${s.label} → ${v}`); }}>
+                    <SelectTrigger className="h-6 text-[11px] flex-1 max-w-[200px]"><SelectValue placeholder="Assigner…" /></SelectTrigger>
+                    <SelectContent>
+                      {TEAM[STEP_ROLE[s.key]].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <ul className="space-y-1">
                   {st.tasks.map((t, ti) => (
                     <li key={ti} className="flex items-start gap-2">
                       <Checkbox checked={t.done} onCheckedChange={() => actions.toggleOrderTask(order.id, s.key, ti)} className="mt-0.5" />
@@ -733,6 +742,7 @@ function WorkflowTimeline({ order }: { order: Order }) {
                   ))}
                 </ul>
               </div>
+
             </li>
           );
         })}
