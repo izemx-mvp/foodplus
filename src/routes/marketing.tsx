@@ -376,7 +376,7 @@ function CalendarTab() {
   );
 }
 
-function CalendarGrid({ posts, onSelect }: { posts: SocialPost[]; onSelect: (p: SocialPost) => void }) {
+function CalendarGrid({ posts, onSelect, onCreateOn }: { posts: SocialPost[]; onSelect: (p: SocialPost) => void; onCreateOn: (d: string) => void }) {
   const today = new Date();
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const year = cursor.getFullYear(), month = cursor.getMonth();
