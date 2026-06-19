@@ -64,12 +64,12 @@ function Dashboard() {
   };
 
   const recentActivity = [
-    { tone: "success" as const, text: "Commande CMD-2406 livrée à Cantine OCP Agadir" },
-    { tone: "info" as const, text: "Nouveau lead chaud : Sofitel Tanger (score 95)" },
-    { tone: "warning" as const, text: "CMD-2404 en retard – Dar Zellij Fès" },
-    { tone: "linkedin" as const, text: "Post LinkedIn publié : 1.2K vues, 42 réactions" },
-    { tone: "instagram" as const, text: "Post Instagram en brouillon : Tajine du chef" },
-    { tone: "destructive" as const, text: "Lead perdu : Cafétéria Centrale (concurrence)" },
+    { tone: "success" as const, text: "Commande CMD-2406 livrée à Cantine OCP Agadir", to: "/orders" as const },
+    { tone: "info" as const, text: "Nouveau lead chaud : Sofitel Tanger (score 95)", to: "/leads" as const },
+    { tone: "warning" as const, text: "CMD-2404 en retard – Dar Zellij Fès", to: "/orders" as const },
+    { tone: "linkedin" as const, text: "Post LinkedIn publié : 1.2K vues, 42 réactions", to: "/marketing" as const },
+    { tone: "instagram" as const, text: "Post Instagram en brouillon : Tajine du chef", to: "/marketing" as const },
+    { tone: "destructive" as const, text: "Lead perdu : Cafétéria Centrale (concurrence)", to: "/leads" as const },
   ];
 
   return (
