@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, actions } from "@/lib/store";
-import type { SocialPlatform, PostTone, PostIdea, SocialPost } from "@/lib/mock-data";
+import type { SocialPlatform, PostTone, PostIdea, SocialPost, IntegrationConfig, PostFrequency } from "@/lib/mock-data";
+import { Switch } from "@/components/ui/switch";
 import { Sparkles, Plus, Calendar, Send, Trash2, Image as ImageIcon, X, Instagram, Facebook, Linkedin } from "lucide-react";
 import { toast } from "sonner";
 
