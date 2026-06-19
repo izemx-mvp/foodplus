@@ -50,43 +50,43 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.99 0.003 240);
-  --foreground: oklch(0.18 0.02 260);
+  --background: oklch(0.99 0.005 90);
+  --foreground: oklch(0.18 0.02 30);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 260);
+  --card-foreground: oklch(0.18 0.02 30);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 260);
-  --primary: oklch(0.55 0.2 260);              /* blue – CRM / communication */
+  --popover-foreground: oklch(0.18 0.02 30);
+  --primary: oklch(0.58 0.22 25);               /* Foodplus red – brand */
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.96 0.01 250);
-  --secondary-foreground: oklch(0.25 0.03 260);
-  --muted: oklch(0.96 0.008 250);
-  --muted-foreground: oklch(0.5 0.02 260);
-  --accent: oklch(0.95 0.02 260);
-  --accent-foreground: oklch(0.25 0.03 260);
-  --destructive: oklch(0.6 0.24 27);            /* red */
+  --secondary: oklch(0.96 0.03 145);            /* soft green tint */
+  --secondary-foreground: oklch(0.3 0.1 145);
+  --muted: oklch(0.96 0.01 90);
+  --muted-foreground: oklch(0.5 0.02 60);
+  --accent: oklch(0.94 0.08 145);               /* fresh green accent */
+  --accent-foreground: oklch(0.3 0.12 145);
+  --destructive: oklch(0.55 0.24 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.65 0.18 150);              /* green */
+  --success: oklch(0.6 0.18 145);               /* Foodplus green */
   --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.82 0.16 90);               /* yellow */
-  --warning-foreground: oklch(0.2 0.02 90);
-  --info: oklch(0.55 0.2 260);                  /* blue */
+  --warning: oklch(0.82 0.16 75);
+  --warning-foreground: oklch(0.2 0.02 75);
+  --info: oklch(0.6 0.18 145);                  /* green info */
   --info-foreground: oklch(0.99 0 0);
-  --instagram: oklch(0.7 0.2 0);                /* pink */
+  --instagram: oklch(0.65 0.22 10);
   --instagram-foreground: oklch(0.99 0 0);
-  --linkedin: oklch(0.5 0.22 300);              /* purple */
+  --linkedin: oklch(0.5 0.18 250);
   --linkedin-foreground: oklch(0.99 0 0);
-  --border: oklch(0.92 0.01 255);
-  --input: oklch(0.92 0.01 255);
-  --ring: oklch(0.55 0.2 260);
-  --sidebar: oklch(0.985 0.005 250);
-  --sidebar-foreground: oklch(0.2 0.02 260);
-  --sidebar-primary: oklch(0.55 0.2 260);
+  --border: oklch(0.92 0.01 60);
+  --input: oklch(0.92 0.01 60);
+  --ring: oklch(0.58 0.22 25);
+  --sidebar: oklch(0.22 0.05 25);               /* deep red-brown sidebar */
+  --sidebar-foreground: oklch(0.97 0.01 90);
+  --sidebar-primary: oklch(0.6 0.18 145);       /* green active in red sidebar */
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.02 260);
-  --sidebar-accent-foreground: oklch(0.2 0.03 260);
-  --sidebar-border: oklch(0.92 0.01 255);
-  --sidebar-ring: oklch(0.55 0.2 260);
+  --sidebar-accent: oklch(0.3 0.08 25);
+  --sidebar-accent-foreground: oklch(0.99 0.01 90);
+  --sidebar-border: oklch(0.3 0.05 25);
+  --sidebar-ring: oklch(0.58 0.22 25);
 }
 
 .dark {
