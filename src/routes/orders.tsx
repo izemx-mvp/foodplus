@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, actions } from "@/lib/store";
 import {
-  ORDER_STATUSES, WORKFLOW_STEPS, WAREHOUSES, buildWorkflow, TEAM, ROLE_LABEL,
+  ORDER_STATUSES, WORKFLOW_STEPS, WAREHOUSES, buildWorkflow, TEAM, ROLE_LABEL, STEP_ROLE,
   type Order, type OrderStatus, type OrderPriority, type Warehouse, type WorkflowStepKey, type TeamRole,
 } from "@/lib/mock-data";
 import {
