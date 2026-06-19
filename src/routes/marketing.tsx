@@ -546,7 +546,7 @@ function CreatePostDialog({ open, onClose, initialDate = "" }: { open: boolean; 
               <label className="text-xs font-medium">Hashtags</label>
               <Input value={hashtagsRaw} onChange={(e) => setHashtagsRaw(e.target.value)} placeholder="#Foodplus #Maroc" />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium">Tonalité</label>
                 <Select value={tone} onValueChange={(v) => setTone(v as PostTone)}>
@@ -555,8 +555,12 @@ function CreatePostDialog({ open, onClose, initialDate = "" }: { open: boolean; 
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium">Date prévue</label>
+                <label className="text-xs font-medium">Jour</label>
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Heure</label>
+                <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1.5">
