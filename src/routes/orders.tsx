@@ -14,13 +14,13 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, actions } from "@/lib/store";
 import {
-  ORDER_STATUSES, WORKFLOW_STEPS, WAREHOUSES, buildWorkflow,
-  type Order, type OrderStatus, type OrderPriority, type Warehouse, type WorkflowStepKey,
+  ORDER_STATUSES, WORKFLOW_STEPS, WAREHOUSES, buildWorkflow, TEAM, ROLE_LABEL,
+  type Order, type OrderStatus, type OrderPriority, type Warehouse, type WorkflowStepKey, type TeamRole,
 } from "@/lib/mock-data";
 import {
   Package, Truck, CheckCircle2, AlertTriangle, Plus, Download, RefreshCw, Search, Eye,
   ArrowRight, MessageSquare, FileText, Send, Sparkles, Mail, Phone, User, Building2,
-  CreditCard, Bot, LayoutGrid, Trash2, GripVertical, X,
+  CreditCard, Bot, LayoutGrid, Trash2, GripVertical, X, Clock, UserCheck, Users, Bell, Table as TableIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +51,7 @@ function OrdersPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [view360, setView360] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [view, setView] = useState<"pipeline" | "table" | "team" | "alerts">("pipeline");
 
   const filtered = useMemo(() => orders.filter((o) => {
     if (q && ![o.id, o.client, o.clientInfo.phone, o.commercial].join(" ").toLowerCase().includes(q.toLowerCase())) return false;
@@ -64,16 +65,19 @@ function OrdersPage() {
     return true;
   }), [orders, q, status, commercial, adv, warehouse, city, priority, date]);
 
-  // KPIs
+  // KPIs — CRM Operation Center
   const monthOrders = orders.filter((o) => o.date.startsWith("2026-06"));
-  const kpis = {
-    countMonth: monthOrders.length,
-    caMonth: monthOrders.reduce((s, o) => s + o.amount, 0),
-    advBlocked: orders.filter((o) => o.stage === "adv").length,
-    preparing: orders.filter((o) => o.currentStep === "preparation_logistique" || o.currentStep === "expedition").length,
-    deliveriesToday: orders.filter((o) => o.dueDate === today).length,
-    unpaid: orders.filter((o) => o.invoiceStatus === "pending" || o.invoiceStatus === "late").reduce((s, o) => s + (o.amount - o.paid), 0),
-  };
+  const delivered = orders.filter((o) => o.status === "delivered").length;
+  const inProgress = orders.filter((o) => o.status === "in_progress" || o.status === "preparation").length;
+  const blocked = orders.filter((o) => o.status === "delayed" || (o.stage === "adv" && o.currentStep === "validation_adv")).length;
+  const caTotal = orders.reduce((s, o) => s + o.amount, 0);
+  const avgDays = (() => {
+    const all = orders.flatMap((o) => WORKFLOW_STEPS.map((s) => o.workflow[s.key].durationDays ?? 0).filter(Boolean));
+    return all.length ? (all.reduce((a, b) => a + b, 0) / all.length).toFixed(1) : "0";
+  })();
+  const deliveriesToday = orders.filter((o) => o.dueDate === today).length;
+  const unpaid = orders.filter((o) => o.invoiceStatus === "pending" || o.invoiceStatus === "late").reduce((s, o) => s + (o.amount - o.paid), 0);
+  void monthOrders; void deliveriesToday; void unpaid;
 
   const commercials = Array.from(new Set(orders.map((o) => o.commercial)));
   const advs = Array.from(new Set(orders.map((o) => o.adv)));
@@ -99,19 +103,18 @@ function OrdersPage() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Commandes — Centre Opérationnel</h1>
+          <h1 className="text-2xl font-semibold">Commandes — CRM Operation Center</h1>
           <p className="text-sm text-muted-foreground">{orders.length} commandes · pipeline temps réel</p>
         </div>
       </div>
 
-      {/* KPI */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Kpi tone="info" icon={Package} label="Commandes du mois" value={String(kpis.countMonth)} />
-        <Kpi tone="success" icon={CreditCard} label="CA du mois" value={fmtMoney(kpis.caMonth)} />
-        <Kpi tone={kpis.advBlocked > 2 ? "destructive" : "warning"} icon={AlertTriangle} label="En validation ADV" value={String(kpis.advBlocked)} />
-        <Kpi tone="warning" icon={Package} label="En préparation" value={String(kpis.preparing)} />
-        <Kpi tone="info" icon={Truck} label="Livraisons aujourd'hui" value={String(kpis.deliveriesToday)} />
-        <Kpi tone={kpis.unpaid > 200000 ? "destructive" : "warning"} icon={FileText} label="Factures impayées" value={fmtMoney(kpis.unpaid)} />
+      {/* KPI top bar */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <Kpi tone="success" icon={CheckCircle2} label="Commandes livrées" value={String(delivered)} />
+        <Kpi tone="warning" icon={Package} label="En cours de traitement" value={String(inProgress)} />
+        <Kpi tone="destructive" icon={AlertTriangle} label="Bloquées" value={String(blocked)} />
+        <Kpi tone="info" icon={CreditCard} label="CA total" value={fmtMoney(caTotal)} />
+        <Kpi tone="info" icon={Clock} label="Temps moyen / étape" value={`${avgDays} j`} />
       </div>
 
       {/* Filters */}
@@ -120,7 +123,7 @@ function OrdersPage() {
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="N°, client, téléphone, commercial…" value={q} onChange={(e) => setQ(e.target.value)} className="pl-8" />
+              <Input placeholder="Commande / client / responsable…" value={q} onChange={(e) => setQ(e.target.value)} className="pl-8" />
             </div>
             <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-1" />Nouvelle commande</Button>
             <Button variant="outline" onClick={exportCSV}><Download className="h-4 w-4 mr-1" />Export Excel</Button>
@@ -138,12 +141,177 @@ function OrdersPage() {
         </CardContent>
       </Card>
 
-      {/* Pipeline kanban */}
-      <Pipeline orders={filtered} onSelect={setSelected} on360={setView360} />
+      {/* View toggle */}
+      <div className="flex flex-wrap gap-1 rounded-md border bg-muted/30 p-1 w-fit">
+        <ViewTab active={view === "pipeline"} onClick={() => setView("pipeline")} icon={LayoutGrid} label="Pipeline" />
+        <ViewTab active={view === "table"} onClick={() => setView("table")} icon={TableIcon} label="Tableau" />
+        <ViewTab active={view === "team"} onClick={() => setView("team")} icon={Users} label="Équipe" />
+        <ViewTab active={view === "alerts"} onClick={() => setView("alerts")} icon={Bell} label="Alertes" />
+      </div>
+
+      {view === "pipeline" && <Pipeline orders={filtered} onSelect={setSelected} on360={setView360} />}
+      {view === "table" && <OrdersTable orders={filtered} onSelect={setSelected} on360={setView360} />}
+      {view === "team" && <TeamView orders={filtered} onPick={(person) => { setCommercial("all"); setAdv("all"); setQ(person); setView("table"); }} />}
+      {view === "alerts" && <AlertsPanel orders={orders} onSelect={(id) => { setSelected(id); }} />}
 
       <OrderSheet id={selected} onClose={() => setSelected(null)} on360={() => { if (selected) setView360(selected); }} />
       <View360Dialog id={view360} onClose={() => setView360(null)} />
       <CreateOrderDialog open={creating} onClose={() => setCreating(false)} />
+    </div>
+  );
+}
+
+function ViewTab({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: React.ComponentType<{ className?: string }>; label: string }) {
+  return (
+    <button onClick={onClick} className={"inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition " + (active ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}>
+      <Icon className="h-3.5 w-3.5" />{label}
+    </button>
+  );
+}
+
+function OrdersTable({ orders, onSelect, on360 }: { orders: Order[]; onSelect: (id: string) => void; on360: (id: string) => void }) {
+  return (
+    <Card>
+      <CardContent className="p-0 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 text-left">Commande</th>
+              <th className="px-3 py-2 text-left">Client</th>
+              <th className="px-3 py-2 text-right">Montant</th>
+              <th className="px-3 py-2 text-left">Étape</th>
+              <th className="px-3 py-2 text-left">Responsable</th>
+              <th className="px-3 py-2 text-left">Statut</th>
+              <th className="px-3 py-2 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map((o) => {
+              const m = statusMeta(o.status);
+              const step = stepMeta(o.currentStep);
+              const resp = currentResponsible(o);
+              return (
+                <tr key={o.id} className="border-t hover:bg-muted/30">
+                  <td className="px-3 py-2 font-mono text-xs">{o.id}</td>
+                  <td className="px-3 py-2"><div className="font-medium">{o.client}</div><div className="text-[11px] text-muted-foreground">{o.city}</div></td>
+                  <td className="px-3 py-2 text-right font-semibold">{fmtMoney(o.amount)}</td>
+                  <td className="px-3 py-2"><span className="text-xs">{step.label}</span></td>
+                  <td className="px-3 py-2"><div className="text-xs">{resp.person}</div><div className="text-[10px] text-muted-foreground">{ROLE_LABEL[resp.role]}</div></td>
+                  <td className="px-3 py-2"><StatusBadge tone={m.tone}>{m.label}</StatusBadge></td>
+                  <td className="px-3 py-2 text-right">
+                    <div className="inline-flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => onSelect(o.id)}><Eye className="h-3.5 w-3.5 mr-1" />Voir</Button>
+                      <Button size="sm" variant="ghost" onClick={() => on360(o.id)}><LayoutGrid className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {orders.length === 0 && (
+              <tr><td colSpan={7} className="px-3 py-8 text-center text-sm text-muted-foreground">Aucune commande</td></tr>
+            )}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function currentResponsible(o: Order): { role: TeamRole; person: string } {
+  const idx = WORKFLOW_STEPS.findIndex((s) => s.key === o.currentStep);
+  if (idx <= 1) return { role: "commercial", person: o.commercial };
+  if (idx === 2) return { role: "adv", person: o.adv };
+  if (idx >= 3 && idx <= 5) return { role: "logistique", person: o.driver };
+  return { role: "facturation", person: TEAM.facturation[0] };
+}
+
+function nextResponsible(o: Order): { role: TeamRole; person: string } | null {
+  const idx = WORKFLOW_STEPS.findIndex((s) => s.key === o.currentStep);
+  if (idx >= WORKFLOW_STEPS.length - 1) return null;
+  const nextKey = WORKFLOW_STEPS[idx + 1].key;
+  const fake = { ...o, currentStep: nextKey };
+  return currentResponsible(fake);
+}
+
+function TeamView({ orders, onPick }: { orders: Order[]; onPick: (person: string) => void }) {
+  const allPeople = Array.from(new Set([
+    ...orders.map((o) => o.commercial),
+    ...orders.map((o) => o.adv),
+    ...orders.map((o) => o.driver).filter((d) => d && d !== "—"),
+  ]));
+  const rows = allPeople.map((person) => {
+    const owned = orders.filter((o) => o.commercial === person || o.adv === person || o.driver === person);
+    const role: TeamRole = orders.find((o) => o.commercial === person) ? "commercial"
+      : orders.find((o) => o.adv === person) ? "adv" : "logistique";
+    const blocked = owned.filter((o) => o.status === "delayed").length;
+    const ca = owned.reduce((s, o) => s + o.amount, 0);
+    return { person, role, count: owned.length, blocked, ca };
+  }).sort((a, b) => b.count - a.count);
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {rows.map((r) => (
+        <Card key={r.person} className="cursor-pointer hover:shadow-md transition" onClick={() => onPick(r.person)}>
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 grid place-items-center rounded-full bg-primary/10 text-primary font-semibold">{r.person.split(" ").map((x) => x[0]).slice(0, 2).join("")}</div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{r.person}</p>
+                <p className="text-[11px] text-muted-foreground">{ROLE_LABEL[r.role]}</p>
+              </div>
+              <Badge variant="outline">{r.count}</Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-md border p-2"><div className="text-muted-foreground">CA</div><div className="font-semibold">{fmtMoney(r.ca)}</div></div>
+              <div className="rounded-md border p-2"><div className="text-muted-foreground">Bloquées</div><div className={"font-semibold " + (r.blocked ? "text-destructive" : "text-success")}>{r.blocked}</div></div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function AlertsPanel({ orders, onSelect }: { orders: Order[]; onSelect: (id: string) => void }) {
+  const blockedAdv = orders.filter((o) => o.stage === "adv");
+  const lateInvoices = orders.filter((o) => o.invoiceStatus === "late");
+  const lateDeliv = orders.filter((o) => o.status === "delayed");
+  const lowStock = orders.filter((o) => o.details.some((d) => (d.stock ?? 0) < d.qty));
+  const validated = orders.filter((o) => o.status === "delivered");
+  const groups: { tone: "destructive" | "warning" | "success" | "info"; icon: typeof AlertTriangle; title: string; items: Order[] }[] = [
+    { tone: "destructive", icon: AlertTriangle, title: `${blockedAdv.length} commandes bloquées ADV`, items: blockedAdv },
+    { tone: "warning", icon: FileText, title: `${lateInvoices.length} factures en retard`, items: lateInvoices },
+    { tone: "destructive", icon: Truck, title: `${lateDeliv.length} livraisons retardées`, items: lateDeliv },
+    { tone: "warning", icon: Package, title: `${lowStock.length} commandes avec stock faible`, items: lowStock },
+    { tone: "success", icon: CheckCircle2, title: `${validated.length} commandes validées`, items: validated },
+  ];
+  const TONE = {
+    destructive: "border-destructive/40 bg-destructive/5 text-destructive",
+    warning: "border-warning/40 bg-warning/10 text-warning-foreground",
+    success: "border-success/40 bg-success/10 text-success",
+    info: "border-info/40 bg-info/5 text-info",
+  };
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+      {groups.map((g, i) => (
+        <Card key={i}>
+          <CardContent className="p-3">
+            <div className={"inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs font-medium " + TONE[g.tone]}>
+              <g.icon className="h-3.5 w-3.5" />{g.title}
+            </div>
+            <ul className="mt-2 divide-y">
+              {g.items.slice(0, 5).map((o) => (
+                <li key={o.id} className="flex items-center justify-between py-1.5 text-xs">
+                  <button className="text-left hover:underline" onClick={() => onSelect(o.id)}>
+                    <span className="font-mono text-[10px] text-muted-foreground mr-2">{o.id}</span>{o.client}
+                  </button>
+                  <span className="text-muted-foreground">{fmtMoney(o.amount)}</span>
+                </li>
+              ))}
+              {g.items.length === 0 && <li className="text-xs text-muted-foreground py-2">Aucune alerte</li>}
+            </ul>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
@@ -266,6 +434,73 @@ function OrderCard({ order, onDragStart, onDragEnd, onSelect, on360 }: { order: 
   );
 }
 
+/* ------------ Responsability + horizontal workflow ------------ */
+function ResponsabilityPanel({ order }: { order: Order }) {
+  const cur = currentResponsible(order);
+  const nxt = nextResponsible(order);
+  const allPeople = TEAM[cur.role];
+  return (
+    <div className="rounded-md border bg-muted/30 p-2.5 space-y-2">
+      <div className="grid gap-2 sm:grid-cols-2 text-xs">
+        <div>
+          <p className="text-[10px] uppercase text-muted-foreground">Responsable actuel</p>
+          <div className="flex items-center gap-1.5 mt-1">
+            <UserCheck className="h-3.5 w-3.5 text-primary" />
+            <Select value={cur.person} onValueChange={(v) => { actions.reassignOrder(order.id, cur.role, v); toast.success(`Réassigné à ${v}`); }}>
+              <SelectTrigger className="h-7 text-xs flex-1"><SelectValue /></SelectTrigger>
+              <SelectContent>{allPeople.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+            </Select>
+            <Badge variant="outline" className="text-[9px]">{ROLE_LABEL[cur.role]}</Badge>
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase text-muted-foreground">Prochaine étape</p>
+          <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs">
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+            {nxt ? <><span className="font-medium">{nxt.person}</span><Badge variant="outline" className="text-[9px]">{ROLE_LABEL[nxt.role]}</Badge></> : <span className="text-muted-foreground">Commande clôturée</span>}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HorizontalWorkflow({ order }: { order: Order }) {
+  const STAGES: { key: WorkflowStepKey[]; label: string; role: TeamRole }[] = [
+    { key: ["creation", "validation_commerciale"], label: "Commercial", role: "commercial" },
+    { key: ["validation_adv"], label: "ADV", role: "adv" },
+    { key: ["preparation_logistique", "expedition"], label: "Logistique", role: "logistique" },
+    { key: ["livraison"], label: "Livraison", role: "logistique" },
+    { key: ["facturation", "paiement", "cloture"], label: "Facturation", role: "facturation" },
+  ];
+  const curIdx = WORKFLOW_STEPS.findIndex((s) => s.key === order.currentStep);
+  return (
+    <div className="flex items-stretch gap-1 overflow-x-auto">
+      {STAGES.map((st, i) => {
+        const stepIdxs = st.key.map((k) => WORKFLOW_STEPS.findIndex((s) => s.key === k));
+        const maxIdx = Math.max(...stepIdxs);
+        const minIdx = Math.min(...stepIdxs);
+        const status: "done" | "current" | "pending" = curIdx > maxIdx ? "done" : curIdx >= minIdx ? "current" : "pending";
+        const days = st.key.reduce((n, k) => n + (order.workflow[k].durationDays ?? 0), 0);
+        const owner = st.role === "commercial" ? order.commercial : st.role === "adv" ? order.adv : st.role === "logistique" ? order.driver : TEAM.facturation[0];
+        const tone = status === "done" ? "bg-success/15 text-success border-success/40"
+          : status === "current" ? "bg-warning/15 text-warning-foreground border-warning/40"
+          : "bg-muted/30 text-muted-foreground border-border";
+        return (
+          <div key={i} className={"flex-1 min-w-[110px] rounded-md border px-2 py-1.5 " + tone}>
+            <div className="flex items-center justify-between text-[10px] font-semibold uppercase">
+              <span>{st.label}</span>
+              {status === "done" ? <CheckCircle2 className="h-3 w-3" /> : status === "current" ? <Clock className="h-3 w-3" /> : <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />}
+            </div>
+            <p className="text-[10px] mt-0.5 truncate">👤 {owner}</p>
+            <p className="text-[9px] opacity-70">{days ? `${days}j` : "—"}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ------------ Sheet 6 onglets ------------ */
 function OrderSheet({ id, onClose, on360 }: { id: string | null; onClose: () => void; on360: () => void }) {
   const order = useStore((s) => s.orders.find((o) => o.id === id) ?? null);
@@ -280,7 +515,7 @@ function OrderSheet({ id, onClose, on360 }: { id: string | null; onClose: () => 
   return (
     <Sheet open={!!id} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col p-0">
-        <SheetHeader className="px-5 py-4 border-b">
+        <SheetHeader className="px-5 py-4 border-b space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div>
               <SheetTitle className="flex items-center gap-2">{order.id} · {order.client}</SheetTitle>
@@ -291,7 +526,10 @@ function OrderSheet({ id, onClose, on360 }: { id: string | null; onClose: () => 
               <Button size="sm" onClick={() => { actions.advanceOrderStep(order.id); toast.success("Étape suivante"); }}><ArrowRight className="h-4 w-4 mr-1" />Étape suivante</Button>
             </div>
           </div>
+          <ResponsabilityPanel order={order} />
+          <HorizontalWorkflow order={order} />
         </SheetHeader>
+
 
         <Tabs defaultValue="info" className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="mx-5 mt-3 justify-start gap-1 bg-muted/40 flex-wrap h-auto">
@@ -504,7 +742,7 @@ function WorkflowTimeline({ order }: { order: Order }) {
 
 function CommTab({ order }: { order: Order }) {
   const [text, setText] = useState("");
-  const KIND_ICON = { email: Mail, whatsapp: MessageSquare, call: Phone, note: FileText };
+  const KIND_ICON = { email: Mail, whatsapp: MessageSquare, call: Phone, note: FileText, assignment: UserCheck, system: Bell };
   return (
     <div className="space-y-3">
       <div className="rounded-md border p-3 space-y-2">

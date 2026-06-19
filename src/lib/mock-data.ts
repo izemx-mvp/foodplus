@@ -85,8 +85,19 @@ export const WORKFLOW_STEPS: { key: WorkflowStepKey; label: string; tasks: strin
 ];
 
 export type ClientInfo = { ice: string; address: string; phone: string; email: string };
-export type Communication = { id: string; kind: "email" | "whatsapp" | "call" | "note"; author: string; date: string; content: string };
+export type Communication = { id: string; kind: "email" | "whatsapp" | "call" | "note" | "assignment" | "system"; author: string; date: string; content: string };
 export type AISuggestion = { tone: "info" | "warning" | "danger" | "success"; text: string };
+
+export type TeamRole = "commercial" | "adv" | "logistique" | "facturation";
+export const TEAM: Record<TeamRole, string[]> = {
+  commercial: ["Ahmed Benali", "Najat Idrissi", "Younes E."],
+  adv: ["Sara M.", "Karim L.", "Fatima Z."],
+  logistique: ["Youssef A.", "Hassan B.", "Karim M.", "Mohamed R.", "Said L.", "Rachid K.", "Adil S."],
+  facturation: ["Fatima Zahir", "Imane Cherkaoui"],
+};
+export const ROLE_LABEL: Record<TeamRole, string> = {
+  commercial: "Commercial", adv: "ADV", logistique: "Logistique", facturation: "Facturation",
+};
 
 export type Order = {
   id: string;

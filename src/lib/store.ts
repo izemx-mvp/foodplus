@@ -91,6 +91,23 @@ export const actions = {
     state.orders = state.orders.map((o) => o.id === id ? { ...o, communications: [comm, ...o.communications] } : o);
     emit();
   },
+  reassignOrder: (id: string, role: "commercial" | "adv" | "logistique" | "facturation", person: string) => {
+    state.orders = state.orders.map((o) => {
+      if (o.id !== id) return o;
+      const prev = role === "commercial" ? o.commercial : role === "adv" ? o.adv : role === "logistique" ? o.driver : (o as Order & { facturation?: string }).facturation ?? "—";
+      const patch: Partial<Order> = role === "commercial" ? { commercial: person }
+        : role === "adv" ? { adv: person }
+        : role === "logistique" ? { driver: person }
+        : {};
+      const log: Communication = {
+        id: `log-${Date.now()}`, kind: "assignment", author: "Système",
+        date: new Date().toISOString().slice(0, 10),
+        content: `Réassignation ${role} : ${prev} → ${person}`,
+      };
+      return { ...o, ...patch, communications: [log, ...o.communications] };
+    });
+    emit();
+  },
   markEmailRead: (id: string) => {
     state.emails = state.emails.map((e) => (e.id === id ? { ...e, unread: false } : e));
     emit();
