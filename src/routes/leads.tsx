@@ -10,7 +10,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, actions } from "@/lib/store";
 import { LEAD_STATUSES, SECTORS, CITIES, type Lead, type LeadStatus } from "@/lib/mock-data";
-import { Sparkles, Mail, Phone, Plus, List, KanbanSquare, CalendarDays, GripVertical, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Sparkles, Mail, Phone, Plus, List, KanbanSquare, CalendarDays, GripVertical, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/leads")({
@@ -32,6 +33,10 @@ function LeadsPage() {
   const [minScore, setMinScore] = useState(0);
   const [selected, setSelected] = useState<Lead | null>(null);
   const [aiMsg, setAiMsg] = useState<{ lead: Lead; msg: string } | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const togglePick = (id: string) => setPicked((cur) => { const n = new Set(cur); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const clearPicked = () => setPicked(new Set());
+  const bulkStatus = (s: LeadStatus) => { picked.forEach((id) => actions.updateLead(id, { status: s })); toast.success(`${picked.size} leads → ${statusMeta(s).label}`); clearPicked(); };
 
   const filtered = useMemo(() => leads.filter((l) => {
     if (q && ![l.company, l.contact, l.email].join(" ").toLowerCase().includes(q.toLowerCase())) return false;
@@ -112,7 +117,23 @@ Younes El Idrissi – Foodplus`;
         </CardContent>
       </Card>
 
-      {view === "list" && <ListView leads={filtered} onSelect={setSelected} onAI={generateAIMessage} />}
+      {picked.size > 0 && (
+        <Card className="border-primary bg-primary/5">
+          <CardContent className="p-3 flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">{picked.size} sélectionné{picked.size > 1 ? "s" : ""}</span>
+            <Select onValueChange={(v) => bulkStatus(v as LeadStatus)}>
+              <SelectTrigger className="w-44 h-8"><SelectValue placeholder="Changer statut…" /></SelectTrigger>
+              <SelectContent>{LEAD_STATUSES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}</SelectContent>
+            </Select>
+            <Button size="sm" variant="outline" onClick={() => { picked.forEach((id) => { const l = leads.find((x) => x.id === id); if (l) generateAIMessage(l); }); }}>
+              <Sparkles className="h-3.5 w-3.5" />Messages IA
+            </Button>
+            <Button size="sm" variant="ghost" onClick={clearPicked} className="ml-auto"><X className="h-3.5 w-3.5" />Désélectionner</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {view === "list" && <ListView leads={filtered} onSelect={setSelected} onAI={generateAIMessage} picked={picked} togglePick={togglePick} pickAll={() => setPicked(new Set(filtered.map((l) => l.id)))} clearPicked={clearPicked} />}
       {view === "kanban" && <KanbanView leads={filtered} onSelect={setSelected} />}
       {view === "calendar" && <CalendarView leads={filtered} onSelect={setSelected} />}
 
@@ -141,7 +162,8 @@ Younes El Idrissi – Foodplus`;
   );
 }
 
-function ListView({ leads, onSelect, onAI }: { leads: Lead[]; onSelect: (l: Lead) => void; onAI: (l: Lead) => void }) {
+function ListView({ leads, onSelect, onAI, picked, togglePick, pickAll, clearPicked }: { leads: Lead[]; onSelect: (l: Lead) => void; onAI: (l: Lead) => void; picked: Set<string>; togglePick: (id: string) => void; pickAll: () => void; clearPicked: () => void }) {
+  const allChecked = leads.length > 0 && leads.every((l) => picked.has(l.id));
   return (
     <Card>
       <CardContent className="p-0">
@@ -149,6 +171,7 @@ function ListView({ leads, onSelect, onAI }: { leads: Lead[]; onSelect: (l: Lead
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
               <tr>
+                <th className="px-3 py-3 w-8"><Checkbox checked={allChecked} onCheckedChange={(c) => c ? pickAll() : clearPicked()} /></th>
                 <th className="px-4 py-3 text-left">Entreprise</th>
                 <th className="px-4 py-3 text-left">Contact</th>
                 <th className="px-4 py-3 text-left">Secteur</th>
@@ -162,8 +185,12 @@ function ListView({ leads, onSelect, onAI }: { leads: Lead[]; onSelect: (l: Lead
             <tbody>
               {leads.map((l) => {
                 const m = statusMeta(l.status);
+                const isPicked = picked.has(l.id);
                 return (
-                  <tr key={l.id} className="border-t hover:bg-muted/30 cursor-pointer" onClick={() => onSelect(l)}>
+                  <tr key={l.id} className={`border-t hover:bg-muted/30 cursor-pointer ${isPicked ? "bg-primary/5" : ""}`} onClick={() => onSelect(l)}>
+                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox checked={isPicked} onCheckedChange={() => togglePick(l.id)} />
+                    </td>
                     <td className="px-4 py-3 font-medium">{l.company}</td>
                     <td className="px-4 py-3 text-muted-foreground">{l.contact}</td>
                     <td className="px-4 py-3 text-muted-foreground">{l.sector}</td>
@@ -188,7 +215,7 @@ function ListView({ leads, onSelect, onAI }: { leads: Lead[]; onSelect: (l: Lead
                 );
               })}
               {leads.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">Aucun lead ne correspond aux filtres.</td></tr>
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">Aucun lead ne correspond aux filtres.</td></tr>
               )}
             </tbody>
           </table>

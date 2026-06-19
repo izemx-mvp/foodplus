@@ -35,6 +35,9 @@ function platformIcon(p: SocialPlatform) {
   return <span className="text-[10px] font-bold uppercase">{p[0]}</span>;
 }
 
+const imgUrl = (postId: string, idx: number, w = 400, h = 300) =>
+  `https://picsum.photos/seed/${encodeURIComponent(postId)}-${idx}/${w}/${h}`;
+
 function MarketingPage() {
   return (
     <div className="space-y-5">
@@ -336,7 +339,12 @@ function AgendaList({ posts, onSelect }: { posts: SocialPost[]; onSelect: (p: So
       <CardContent className="p-0 divide-y">
         {sorted.map((p) => (
           <button key={p.id} onClick={() => onSelect(p)} className="w-full text-left px-4 py-3 hover:bg-muted/40 flex items-center gap-3">
-            <div className="text-xs text-muted-foreground w-24">{p.date}</div>
+            <div className="text-xs text-muted-foreground w-24 shrink-0">{p.date}</div>
+            {p.images.length > 0 ? (
+              <img src={imgUrl(p.id, 0, 80, 80)} alt="" className="h-12 w-12 rounded object-cover shrink-0" loading="lazy" />
+            ) : (
+              <div className="h-12 w-12 rounded bg-muted grid place-items-center shrink-0"><ImageIcon className="h-4 w-4 text-muted-foreground" /></div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">{p.title}</p>
               <p className="text-xs text-muted-foreground truncate">{p.content}</p>
@@ -458,7 +466,7 @@ function CreatePostDialog({ open, onClose }: { open: boolean; onClose: () => voi
 function PostDialog({ post, onClose }: { post: SocialPost | null; onClose: () => void }) {
   return (
     <Dialog open={!!post} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         {post && (
           <>
             <DialogHeader>
@@ -469,6 +477,16 @@ function PostDialog({ post, onClose }: { post: SocialPost | null; onClose: () =>
               <DialogDescription>{post.date} · {post.tone}</DialogDescription>
             </DialogHeader>
             <div className="space-y-3 text-sm">
+              {post.images.length > 0 && (
+                <div className={`grid gap-2 ${post.images.length === 1 ? "grid-cols-1" : post.images.length === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
+                  {post.images.map((desc, i) => (
+                    <div key={i} className="space-y-1">
+                      <img src={imgUrl(post.id, i, 600, 600)} alt={desc} className="aspect-square w-full rounded-lg object-cover border" loading="lazy" />
+                      <p className="text-[10px] text-muted-foreground line-clamp-2">{desc}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
               <p>{post.content}</p>
               <div className="flex flex-wrap gap-1">
                 {post.hashtags.map((h) => <Badge key={h} variant="secondary">{h}</Badge>)}
@@ -477,14 +495,6 @@ function PostDialog({ post, onClose }: { post: SocialPost | null; onClose: () =>
                 <p className="text-xs font-medium text-muted-foreground mb-1">Plateformes</p>
                 <div className="flex gap-1">{post.platforms.map((p) => <Badge key={p} variant="outline" className="gap-1">{platformIcon(p)}{p}</Badge>)}</div>
               </div>
-              {post.images.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Visuels</p>
-                  <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
-                    {post.images.map((img, i) => <li key={i}>{img}</li>)}
-                  </ul>
-                </div>
-              )}
               <div className="flex gap-2">
                 {post.status !== "published" && (
                   <Button onClick={() => { actions.updatePost(post.id, { status: "published" }); toast.success("Post publié"); onClose(); }}>
