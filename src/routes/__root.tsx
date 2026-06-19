@@ -82,10 +82,33 @@ function RootComponent() {
                 <input placeholder="Rechercher leads, commandes, emails…" className="w-full rounded-md border bg-muted/40 pl-8 pr-3 py-1.5 text-sm outline-none focus:border-primary" />
               </div>
               <div className="flex-1 md:hidden" />
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-4 w-4" />
-                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
-              </Button>
+              <div className="ml-auto flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-4 w-4" />
+                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-2 rounded-full pl-1 pr-2 py-1 hover:bg-muted">
+                      <div className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-primary text-[11px] font-semibold">YE</div>
+                      <span className="hidden sm:flex flex-col text-left leading-tight">
+                        <span className="text-xs font-medium">Younes El Idrissi</span>
+                        <span className="text-[10px] text-muted-foreground">Sales Manager</span>
+                      </span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => toast.info("Profil bientôt disponible")}>
+                      <User className="h-4 w-4" /> Profil
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast.success("Déconnexion…")}>
+                      <LogOut className="h-4 w-4" /> Déconnexion
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </header>
             <main className="flex-1 p-4 md:p-6 min-w-0">
               <Outlet />
