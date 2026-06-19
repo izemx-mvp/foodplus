@@ -14,8 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, actions } from "@/lib/store";
 import {
-  ORDER_STATUSES, WORKFLOW_STEPS, WAREHOUSES,
-  type Order, type OrderStatus, type OrderPriority, type Warehouse, type WorkflowStepKey, type InvoiceStatus,
+  ORDER_STATUSES, WORKFLOW_STEPS, WAREHOUSES, buildWorkflow,
+  type Order, type OrderStatus, type OrderPriority, type Warehouse, type WorkflowStepKey,
 } from "@/lib/mock-data";
 import {
   Package, Truck, CheckCircle2, AlertTriangle, Plus, Download, RefreshCw, Search, Eye, Pencil,
@@ -652,7 +652,7 @@ function CreateOrderDialog({ open, onClose }: { open: boolean; onClose: () => vo
     const order: Order = {
       id, client, city, amount, items: 1, status: "preparation", date: today,
       stage: "commercial", address: `${city}`, driver: "—", details: [{ name: "Produit personnalisé", qty: 1, price: amount, stock: 50 }],
-      workflow: (await import("@/lib/mock-data")).buildWorkflow("preparation") as never,
+      workflow: buildWorkflow("preparation"),
       priority, commercial, adv, warehouse,
       clientInfo: { ice: "000000000000000", address: city, phone, email },
       dueDate, subtotal, tax: amount - subtotal, paid: 0, currentStep: "creation",
