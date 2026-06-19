@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, actions } from "@/lib/store";
-import type { SocialPlatform, PostTone, PostIdea, SocialPost } from "@/lib/mock-data";
+import type { SocialPlatform, PostTone, PostIdea, SocialPost, IntegrationConfig, PostFrequency } from "@/lib/mock-data";
+import { Switch } from "@/components/ui/switch";
 import { Sparkles, Plus, Calendar, Send, Trash2, Image as ImageIcon, X, Instagram, Facebook, Linkedin } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,60 +61,95 @@ function MarketingPage() {
   );
 }
 
+const FREQ_OPTIONS: { value: PostFrequency; label: string }[] = [
+  { value: "daily", label: "Quotidien" },
+  { value: "3xweek", label: "3× / semaine" },
+  { value: "weekly", label: "Hebdomadaire" },
+  { value: "monthly", label: "Mensuel" },
+  { value: "off", label: "Désactivé" },
+];
+
 function ConfigTab() {
   const config = useStore((s) => s.marketing);
   const [website, setWebsite] = useState(config.website);
   const [logo, setLogo] = useState(config.logo);
   const [description, setDescription] = useState(config.description);
-  const [tone, setTone] = useState<PostTone>(config.tone);
-  const [frequency, setFrequency] = useState(config.frequency);
+  const [integrations, setIntegrations] = useState<IntegrationConfig[]>(config.integrations);
+
+  const patchIntegration = (platform: SocialPlatform, patch: Partial<IntegrationConfig>) =>
+    setIntegrations((cur) => cur.map((i) => (i.platform === platform ? { ...i, ...patch } : i)));
 
   const save = () => {
-    actions.updateMarketingConfig({ website, logo, description, tone, frequency });
+    actions.updateMarketingConfig({ website, logo, description, integrations });
     toast.success("Configuration enregistrée");
   };
 
   return (
-    <Card>
-      <CardHeader><CardTitle className="text-base">Paramètres de marque</CardTitle></CardHeader>
-      <CardContent className="space-y-4 max-w-2xl">
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Site web</label>
-          <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://foodplus.ma" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Logo (URL)</label>
-          <Input value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="https://…/logo.png" />
-          {logo && <img src={logo} alt="logo" className="h-12 mt-2 rounded border" onError={(e) => (e.currentTarget.style.display = "none")} />}
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Description de Foodplus</label>
-          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+    <div className="space-y-4">
+      <Card>
+        <CardHeader><CardTitle className="text-base">Paramètres de marque</CardTitle></CardHeader>
+        <CardContent className="space-y-4 max-w-2xl">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Tonalité par défaut</label>
-            <Select value={tone} onValueChange={(v) => setTone(v as PostTone)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{TONES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-            </Select>
+            <label className="text-xs font-medium">Site web</label>
+            <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://foodplus.ma" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Fréquence auto-génération</label>
-            <Select value={frequency} onValueChange={(v) => setFrequency(v as typeof frequency)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Quotidien</SelectItem>
-                <SelectItem value="3xweek">3× par semaine</SelectItem>
-                <SelectItem value="weekly">Hebdomadaire</SelectItem>
-                <SelectItem value="monthly">Mensuel</SelectItem>
-              </SelectContent>
-            </Select>
+            <label className="text-xs font-medium">Logo (URL)</label>
+            <Input value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="https://…/logo.png" />
+            {logo && <img src={logo} alt="logo" className="h-12 mt-2 rounded border" onError={(e) => (e.currentTarget.style.display = "none")} />}
           </div>
-        </div>
-        <Button onClick={save}>Enregistrer</Button>
-      </CardContent>
-    </Card>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Description de Foodplus</label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Intégrations réseaux sociaux</CardTitle>
+          <p className="text-xs text-muted-foreground">Chaque réseau a sa propre tonalité et fréquence de publication.</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {integrations.map((it) => {
+            const meta = PLATFORMS.find((p) => p.key === it.platform)!;
+            return (
+              <div key={it.platform} className="rounded-lg border p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className={`grid h-8 w-8 place-items-center rounded-md text-white ${meta.color}`}>{platformIcon(it.platform)}</div>
+                    <div>
+                      <p className="font-medium text-sm">{meta.label}</p>
+                      <p className="text-[11px] text-muted-foreground">{it.enabled ? "Actif" : "Désactivé"}</p>
+                    </div>
+                  </div>
+                  <Switch checked={it.enabled} onCheckedChange={(v) => patchIntegration(it.platform, { enabled: v })} />
+                </div>
+                {it.enabled && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium">Tonalité</label>
+                      <Select value={it.tone} onValueChange={(v) => patchIntegration(it.platform, { tone: v as PostTone })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{TONES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium">Fréquence</label>
+                      <Select value={it.frequency} onValueChange={(v) => patchIntegration(it.platform, { frequency: v as PostFrequency })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{FREQ_OPTIONS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <Button onClick={save} className="mt-2">Enregistrer la configuration</Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -315,7 +351,7 @@ function PlanDialog({ idea, onClose }: { idea: PostIdea | null; onClose: () => v
 function CalendarTab() {
   const posts = useStore((s) => s.posts);
   const [calView, setCalView] = useState<"grid" | "agenda">("grid");
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<string | null>(null);
   const [selected, setSelected] = useState<SocialPost | null>(null);
 
   return (
@@ -327,18 +363,20 @@ function CalendarTab() {
             <TabsTrigger value="agenda">Agenda</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" />Générer un post</Button>
+        <Button onClick={() => setCreating(new Date().toISOString().slice(0, 10))}><Plus className="h-4 w-4" />Générer un post</Button>
       </div>
 
-      {calView === "grid" ? <CalendarGrid posts={posts} onSelect={setSelected} /> : <AgendaList posts={posts} onSelect={setSelected} />}
+      {calView === "grid"
+        ? <CalendarGrid posts={posts} onSelect={setSelected} onCreateOn={(d) => setCreating(d)} />
+        : <AgendaList posts={posts} onSelect={setSelected} />}
 
-      <CreatePostDialog open={creating} onClose={() => setCreating(false)} />
+      <CreatePostDialog open={!!creating} initialDate={creating || ""} onClose={() => setCreating(null)} />
       <PostDialog post={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
 
-function CalendarGrid({ posts, onSelect }: { posts: SocialPost[]; onSelect: (p: SocialPost) => void }) {
+function CalendarGrid({ posts, onSelect, onCreateOn }: { posts: SocialPost[]; onSelect: (p: SocialPost) => void; onCreateOn: (d: string) => void }) {
   const today = new Date();
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const year = cursor.getFullYear(), month = cursor.getMonth();
@@ -377,8 +415,11 @@ function CalendarGrid({ posts, onSelect }: { posts: SocialPost[]; onSelect: (p: 
             const items = byDay[iso] || [];
             const isToday = iso === today.toISOString().slice(0, 10);
             return (
-              <div key={i} className={`h-24 rounded border p-1 overflow-hidden ${isToday ? "border-primary bg-primary/5" : "bg-card"}`}>
-                <div className="text-[10px] text-muted-foreground">{d}</div>
+              <div key={i} className={`group h-24 rounded border p-1 overflow-hidden relative ${isToday ? "border-primary bg-primary/5" : "bg-card"}`}>
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] text-muted-foreground">{d}</div>
+                  <button onClick={() => onCreateOn(iso)} title="Planifier un post ce jour" className="opacity-0 group-hover:opacity-100 transition rounded hover:bg-primary/10 text-primary p-0.5"><Plus className="h-3 w-3" /></button>
+                </div>
                 <div className="space-y-0.5">
                   {items.slice(0, 2).map((p) => (
                     <button key={p.id} onClick={() => onSelect(p)} className="block w-full truncate rounded bg-primary/10 px-1 text-[10px] text-left text-primary hover:bg-primary/20">
@@ -425,7 +466,7 @@ function AgendaList({ posts, onSelect }: { posts: SocialPost[]; onSelect: (p: So
   );
 }
 
-function CreatePostDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+function CreatePostDialog({ open, onClose, initialDate = "" }: { open: boolean; onClose: () => void; initialDate?: string }) {
   const cfg = useStore((s) => s.marketing);
   const [imageCount, setImageCount] = useState(1);
   const [images, setImages] = useState<string[]>([""]);
@@ -433,7 +474,8 @@ function CreatePostDialog({ open, onClose }: { open: boolean; onClose: () => voi
   const [description, setDescription] = useState("");
   const [title, setTitle] = useState("");
   const [platforms, setPlatforms] = useState<SocialPlatform[]>(["instagram"]);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(initialDate || new Date().toISOString().slice(0, 10));
+  useEffect(() => { if (initialDate) setDate(initialDate); }, [initialDate]);
 
   const setCount = (n: number) => {
     const v = Math.max(0, Math.min(10, n));
@@ -528,6 +570,7 @@ function CreatePostDialog({ open, onClose }: { open: boolean; onClose: () => voi
 }
 
 function PostDialog({ post, onClose }: { post: SocialPost | null; onClose: () => void }) {
+  const [editDate, setEditDate] = useState("");
   return (
     <Dialog open={!!post} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -538,7 +581,7 @@ function PostDialog({ post, onClose }: { post: SocialPost | null; onClose: () =>
                 <span>{post.title}</span>
                 <Button size="icon" variant="ghost" onClick={onClose}><X className="h-4 w-4" /></Button>
               </DialogTitle>
-              <DialogDescription>{post.date} · {post.tone}</DialogDescription>
+              <DialogDescription>{post.date} · {post.tone} · <StatusBadge tone={post.status === "published" ? "success" : post.status === "scheduled" ? "info" : post.status === "failed" ? "destructive" : "muted"}>{post.status === "published" ? "Publié" : post.status === "scheduled" ? "Planifié" : post.status === "failed" ? "Échec" : "Brouillon"}</StatusBadge></DialogDescription>
             </DialogHeader>
             <div className="space-y-3 text-sm">
               {post.images.length > 0 && (
@@ -559,10 +602,31 @@ function PostDialog({ post, onClose }: { post: SocialPost | null; onClose: () =>
                 <p className="text-xs font-medium text-muted-foreground mb-1">Plateformes</p>
                 <div className="flex gap-1">{post.platforms.map((p) => <Badge key={p} variant="outline" className="gap-1">{platformIcon(p)}{p}</Badge>)}</div>
               </div>
-              <div className="flex gap-2">
+
+              {post.status !== "published" && (
+                <div className="rounded-md border p-3 space-y-2">
+                  <p className="text-xs font-medium flex items-center gap-1"><Calendar className="h-3 w-3" />Replanifier</p>
+                  <div className="flex gap-2">
+                    <Input type="date" value={editDate || post.date} onChange={(e) => setEditDate(e.target.value)} className="max-w-[200px]" />
+                    <Button variant="outline" onClick={() => {
+                      const d = editDate || post.date;
+                      actions.updatePost(post.id, { date: d, status: "scheduled" });
+                      toast.success(`Post replanifié au ${d}`);
+                      onClose();
+                    }}>Mettre à jour</Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2">
                 {post.status !== "published" && (
                   <Button onClick={() => { actions.updatePost(post.id, { status: "published" }); toast.success("Post publié"); onClose(); }}>
                     <Send className="h-4 w-4" />Publier maintenant
+                  </Button>
+                )}
+                {post.status === "published" && (
+                  <Button variant="outline" onClick={() => { actions.updatePost(post.id, { status: "draft" }); toast.success("Repassé en brouillon"); onClose(); }}>
+                    Repasser en brouillon
                   </Button>
                 )}
                 <Button variant="outline" onClick={() => { actions.removePost(post.id); toast.success("Post supprimé"); onClose(); }}>
