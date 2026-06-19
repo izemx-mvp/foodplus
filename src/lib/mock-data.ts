@@ -98,6 +98,17 @@ export const TEAM: Record<TeamRole, string[]> = {
 export const ROLE_LABEL: Record<TeamRole, string> = {
   commercial: "Commercial", adv: "ADV", logistique: "Logistique", facturation: "Facturation",
 };
+export const STEP_ROLE: Record<WorkflowStepKey, TeamRole> = {
+  creation: "commercial",
+  validation_commerciale: "commercial",
+  validation_adv: "adv",
+  preparation_logistique: "logistique",
+  expedition: "logistique",
+  livraison: "logistique",
+  facturation: "facturation",
+  paiement: "facturation",
+  cloture: "facturation",
+};
 
 export type Order = {
   id: string;
