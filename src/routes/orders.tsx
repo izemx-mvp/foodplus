@@ -18,8 +18,8 @@ import {
   type Order, type OrderStatus, type OrderPriority, type Warehouse, type WorkflowStepKey,
 } from "@/lib/mock-data";
 import {
-  Package, Truck, CheckCircle2, AlertTriangle, Plus, Download, RefreshCw, Search, Eye, Pencil,
-  ArrowRight, MessageSquare, FileText, Send, Sparkles, Mail, Phone, MapPin, User, Building2,
+  Package, Truck, CheckCircle2, AlertTriangle, Plus, Download, RefreshCw, Search, Eye,
+  ArrowRight, MessageSquare, FileText, Send, Sparkles, Mail, Phone, User, Building2,
   CreditCard, Bot, LayoutGrid, Trash2, GripVertical, X,
 } from "lucide-react";
 import { toast } from "sonner";
