@@ -51,12 +51,8 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t">
-        <div className="flex items-center gap-2 px-2 py-2 group-data-[collapsible=icon]:hidden">
-          <div className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary text-xs font-semibold">YE</div>
-          <div className="flex flex-col text-xs leading-tight">
-            <span className="font-medium">Younes El Idrissi</span>
-            <span className="text-muted-foreground">Sales Manager</span>
-          </div>
+        <div className="px-2 py-2 text-[10px] text-muted-foreground group-data-[collapsible=icon]:hidden">
+          © Foodplus · Sales OS
         </div>
       </SidebarFooter>
     </Sidebar>
