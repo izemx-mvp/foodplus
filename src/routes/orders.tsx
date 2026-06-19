@@ -111,7 +111,7 @@ function OrdersPage() {
         <Kpi tone={kpis.advBlocked > 2 ? "destructive" : "warning"} icon={AlertTriangle} label="En validation ADV" value={String(kpis.advBlocked)} />
         <Kpi tone="warning" icon={Package} label="En préparation" value={String(kpis.preparing)} />
         <Kpi tone="info" icon={Truck} label="Livraisons aujourd'hui" value={String(kpis.deliveriesToday)} />
-        <Kpi tone={kpis.unpaid > 200000 ? "destructive" : "warning"} icon={Receipt} label="Factures impayées" value={fmtMoney(kpis.unpaid)} />
+        <Kpi tone={kpis.unpaid > 200000 ? "destructive" : "warning"} icon={FileText} label="Factures impayées" value={fmtMoney(kpis.unpaid)} />
       </div>
 
       {/* Filters */}
@@ -148,10 +148,6 @@ function OrdersPage() {
   );
 }
 
-function Receipt(props: { className?: string }) {
-  // local fallback if not imported (we did import via lucide above? No, we used Receipt name—it's not in lucide list). Use FileText instead.
-  return <FileText {...props} />;
-}
 
 function Kpi({ icon: Icon, label, value, tone }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; tone: "success" | "warning" | "destructive" | "info" }) {
   const toneCls = {
