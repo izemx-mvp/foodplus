@@ -14,6 +14,8 @@ import { Route as MarketingRouteImport } from './routes/marketing'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as EmailsRouteImport } from './routes/emails'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OrdersLogisticsRouteImport } from './routes/orders.logistics'
+import { Route as OrdersBillingRouteImport } from './routes/orders.billing'
 
 const OrdersRoute = OrdersRouteImport.update({
   id: '/orders',
@@ -40,20 +42,34 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrdersLogisticsRoute = OrdersLogisticsRouteImport.update({
+  id: '/logistics',
+  path: '/logistics',
+  getParentRoute: () => OrdersRoute,
+} as any)
+const OrdersBillingRoute = OrdersBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => OrdersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/emails': typeof EmailsRoute
   '/leads': typeof LeadsRoute
   '/marketing': typeof MarketingRoute
-  '/orders': typeof OrdersRoute
+  '/orders': typeof OrdersRouteWithChildren
+  '/orders/billing': typeof OrdersBillingRoute
+  '/orders/logistics': typeof OrdersLogisticsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/emails': typeof EmailsRoute
   '/leads': typeof LeadsRoute
   '/marketing': typeof MarketingRoute
-  '/orders': typeof OrdersRoute
+  '/orders': typeof OrdersRouteWithChildren
+  '/orders/billing': typeof OrdersBillingRoute
+  '/orders/logistics': typeof OrdersLogisticsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -61,14 +77,38 @@ export interface FileRoutesById {
   '/emails': typeof EmailsRoute
   '/leads': typeof LeadsRoute
   '/marketing': typeof MarketingRoute
-  '/orders': typeof OrdersRoute
+  '/orders': typeof OrdersRouteWithChildren
+  '/orders/billing': typeof OrdersBillingRoute
+  '/orders/logistics': typeof OrdersLogisticsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/emails' | '/leads' | '/marketing' | '/orders'
+  fullPaths:
+    | '/'
+    | '/emails'
+    | '/leads'
+    | '/marketing'
+    | '/orders'
+    | '/orders/billing'
+    | '/orders/logistics'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/emails' | '/leads' | '/marketing' | '/orders'
-  id: '__root__' | '/' | '/emails' | '/leads' | '/marketing' | '/orders'
+  to:
+    | '/'
+    | '/emails'
+    | '/leads'
+    | '/marketing'
+    | '/orders'
+    | '/orders/billing'
+    | '/orders/logistics'
+  id:
+    | '__root__'
+    | '/'
+    | '/emails'
+    | '/leads'
+    | '/marketing'
+    | '/orders'
+    | '/orders/billing'
+    | '/orders/logistics'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,7 +116,7 @@ export interface RootRouteChildren {
   EmailsRoute: typeof EmailsRoute
   LeadsRoute: typeof LeadsRoute
   MarketingRoute: typeof MarketingRoute
-  OrdersRoute: typeof OrdersRoute
+  OrdersRoute: typeof OrdersRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -116,15 +156,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orders/logistics': {
+      id: '/orders/logistics'
+      path: '/logistics'
+      fullPath: '/orders/logistics'
+      preLoaderRoute: typeof OrdersLogisticsRouteImport
+      parentRoute: typeof OrdersRoute
+    }
+    '/orders/billing': {
+      id: '/orders/billing'
+      path: '/billing'
+      fullPath: '/orders/billing'
+      preLoaderRoute: typeof OrdersBillingRouteImport
+      parentRoute: typeof OrdersRoute
+    }
   }
 }
+
+interface OrdersRouteChildren {
+  OrdersBillingRoute: typeof OrdersBillingRoute
+  OrdersLogisticsRoute: typeof OrdersLogisticsRoute
+}
+
+const OrdersRouteChildren: OrdersRouteChildren = {
+  OrdersBillingRoute: OrdersBillingRoute,
+  OrdersLogisticsRoute: OrdersLogisticsRoute,
+}
+
+const OrdersRouteWithChildren =
+  OrdersRoute._addFileChildren(OrdersRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EmailsRoute: EmailsRoute,
   LeadsRoute: LeadsRoute,
   MarketingRoute: MarketingRoute,
-  OrdersRoute: OrdersRoute,
+  OrdersRoute: OrdersRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

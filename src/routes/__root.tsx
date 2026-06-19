@@ -8,13 +8,14 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Bell, Search, User, LogOut } from "lucide-react";
+import { Search, User, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
 function NotFoundComponent() {
@@ -91,10 +92,7 @@ function RootComponent() {
               </div>
               <div className="flex-1 md:hidden" />
               <div className="ml-auto flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-4 w-4" />
-                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
-                </Button>
+                <NotificationsBell />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center gap-2 rounded-full pl-1 pr-2 py-1 hover:bg-muted">
