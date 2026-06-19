@@ -28,10 +28,10 @@ function Dashboard() {
   const revenue = deals.filter((d) => d.stage === "won").reduce((s, d) => s + d.value, 0);
 
   const kpis = [
-    { label: "Leads générés", value: leads.length, delta: "+12%", up: true, icon: Users, tone: "info" as const },
-    { label: "Leads qualifiés", value: qualified, delta: "+8%", up: true, icon: Target, tone: "warning" as const },
-    { label: "Taux de conversion", value: `${conversion}%`, delta: "+3.2pts", up: true, icon: TrendingUp, tone: "success" as const },
-    { label: "Commandes livrées", value: `${delivered}/${orders.length}`, delta: `${delayed} retard`, up: delayed === 0, icon: Package, tone: delayed > 0 ? ("destructive" as const) : ("success" as const) },
+    { label: "Leads générés", value: leads.length, delta: "+12%", up: true, icon: Users, iconClass: "bg-info/15 text-info" },
+    { label: "Leads qualifiés", value: qualified, delta: "+8%", up: true, icon: Target, iconClass: "bg-warning/20 text-warning-foreground" },
+    { label: "Taux de conversion", value: `${conversion}%`, delta: "+3.2pts", up: true, icon: TrendingUp, iconClass: "bg-success/15 text-success" },
+    { label: "Commandes livrées", value: `${delivered}/${orders.length}`, delta: `${delayed} retard`, up: delayed === 0, icon: Package, iconClass: delayed > 0 ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success" },
   ];
 
   const handleRefresh = () => {
@@ -95,7 +95,7 @@ function Dashboard() {
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">{k.label}</p>
                   <p className="mt-2 text-3xl font-semibold">{k.value}</p>
                 </div>
-                <div className={`grid h-10 w-10 place-items-center rounded-lg bg-${k.tone}/15 text-${k.tone}`}>
+                <div className={`grid h-10 w-10 place-items-center rounded-lg ${k.iconClass}`}>
                   <k.icon className="h-5 w-5" />
                 </div>
               </div>
