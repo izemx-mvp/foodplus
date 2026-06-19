@@ -468,14 +468,22 @@ function AgendaList({ posts, onSelect }: { posts: SocialPost[]; onSelect: (p: So
 
 function CreatePostDialog({ open, onClose, initialDate = "" }: { open: boolean; onClose: () => void; initialDate?: string }) {
   const cfg = useStore((s) => s.marketing);
+  const [step, setStep] = useState<"form" | "preview">("form");
+  const [previewId, setPreviewId] = useState(`P-preview-${Date.now()}`);
   const [imageCount, setImageCount] = useState(1);
   const [images, setImages] = useState<string[]>([""]);
   const [tone, setTone] = useState<PostTone>(cfg.tone);
   const [description, setDescription] = useState("");
   const [title, setTitle] = useState("");
+  const [hashtagsRaw, setHashtagsRaw] = useState("#Foodplus #Maroc");
   const [platforms, setPlatforms] = useState<SocialPlatform[]>(["instagram"]);
   const [date, setDate] = useState(initialDate || new Date().toISOString().slice(0, 10));
   useEffect(() => { if (initialDate) setDate(initialDate); }, [initialDate]);
+
+  const reset = () => {
+    setStep("form"); setTitle(""); setDescription(""); setImages([""]); setImageCount(1);
+    setHashtagsRaw("#Foodplus #Maroc"); setPlatforms(["instagram"]);
+  };
 
   const setCount = (n: number) => {
     const v = Math.max(0, Math.min(10, n));
@@ -490,80 +498,124 @@ function CreatePostDialog({ open, onClose, initialDate = "" }: { open: boolean; 
 
   const togglePlat = (p: SocialPlatform) => setPlatforms((cur) => cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]);
 
-  const submit = () => {
+  const goPreview = () => {
     if (!title) return toast.error("Titre requis");
     if (!platforms.length) return toast.error("Sélectionnez au moins une plateforme");
+    setPreviewId(`P-preview-${Date.now()}`);
+    setStep("preview");
+  };
+
+  const hashtags = hashtagsRaw.split(/\s+/).map((h) => h.trim()).filter(Boolean).map((h) => (h.startsWith("#") ? h : `#${h}`));
+
+  const finalize = (status: "scheduled" | "published") => {
     actions.addPost({
       id: `P-${Date.now()}`,
-      platforms,
-      title,
-      content: description,
-      hashtags: ["#Foodplus"],
-      date,
-      status: "scheduled",
-      images: images.filter(Boolean),
-      tone,
+      platforms, title, content: description, hashtags, date, status,
+      images: images.filter(Boolean), tone,
     });
-    toast.success("Post créé et planifié");
-    setTitle(""); setDescription(""); setImages([""]); setImageCount(1);
+    toast.success(status === "published" ? "Post publié" : `Post planifié au ${date}`);
+    reset();
     onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); onClose(); } }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" />Générer un post</DialogTitle>
-          <DialogDescription>Décrivez l'idée du post et les visuels souhaités.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            {step === "form" ? "Générer un post" : "Aperçu du post"}
+          </DialogTitle>
+          <DialogDescription>
+            {step === "form" ? "Décrivez l'idée du post et les visuels souhaités." : "Vérifiez le rendu puis publiez immédiatement ou planifiez-le."}
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Titre du post</label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex : Nouveau partenariat avec…" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Idée / description du post</label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Décrivez l'angle, le message clé…" />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+
+        {step === "form" ? (
+          <div className="space-y-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Tonalité</label>
-              <Select value={tone} onValueChange={(v) => setTone(v as PostTone)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{TONES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-              </Select>
+              <label className="text-xs font-medium">Titre du post</label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex : Nouveau partenariat avec…" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Date</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <label className="text-xs font-medium">Idée / description du post</label>
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Décrivez l'angle, le message clé…" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Hashtags</label>
+              <Input value={hashtagsRaw} onChange={(e) => setHashtagsRaw(e.target.value)} placeholder="#Foodplus #Maroc" />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Tonalité</label>
+                <Select value={tone} onValueChange={(v) => setTone(v as PostTone)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{TONES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Date prévue</label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Nombre d'images</label>
+              <Input type="number" min={0} max={10} value={imageCount} onChange={(e) => setCount(Number(e.target.value))} className="w-24" />
+            </div>
+            {images.map((img, i) => (
+              <div key={i} className="space-y-1.5">
+                <label className="text-xs font-medium flex items-center gap-1"><ImageIcon className="h-3 w-3" />Description image {i + 1}</label>
+                <Input value={img} onChange={(e) => setImages((cur) => cur.map((v, j) => j === i ? e.target.value : v))} placeholder="Ex : Bouteille d'huile sur table en bois" />
+              </div>
+            ))}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Publier sur</label>
+              <div className="flex flex-wrap gap-2">
+                {PLATFORMS.map((p) => (
+                  <button key={p.key} onClick={() => togglePlat(p.key)}
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${platforms.includes(p.key) ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted"}`}>
+                    {platformIcon(p.key)}{p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={goPreview}><Sparkles className="h-4 w-4" />Générer l'aperçu</Button>
+              <Button variant="outline" onClick={() => { reset(); onClose(); }}>Annuler</Button>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Nombre d'images</label>
-            <Input type="number" min={0} max={10} value={imageCount} onChange={(e) => setCount(Number(e.target.value))} className="w-24" />
-          </div>
-          {images.map((img, i) => (
-            <div key={i} className="space-y-1.5">
-              <label className="text-xs font-medium flex items-center gap-1"><ImageIcon className="h-3 w-3" />Description image {i + 1}</label>
-              <Input value={img} onChange={(e) => setImages((cur) => cur.map((v, j) => j === i ? e.target.value : v))} placeholder="Ex : Bouteille d'huile sur table en bois" />
+        ) : (
+          <div className="space-y-4 text-sm">
+            <div className="rounded-lg border bg-card overflow-hidden">
+              <div className="flex items-center gap-2 p-3 border-b">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-success grid place-items-center text-white text-xs font-bold">F+</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold">Foodplus</p>
+                  <p className="text-[11px] text-muted-foreground">{date} · {tone}</p>
+                </div>
+                <div className="flex gap-1">{platforms.map((p) => <Badge key={p} variant="outline" className="gap-1">{platformIcon(p)}{p}</Badge>)}</div>
+              </div>
+              {images.filter(Boolean).length > 0 && (
+                <div className={`grid gap-0.5 ${images.filter(Boolean).length === 1 ? "grid-cols-1" : images.filter(Boolean).length === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
+                  {images.filter(Boolean).map((desc, i) => (
+                    <img key={i} src={imgUrl(previewId, i, 600, 600)} alt={desc} className="aspect-square w-full object-cover" loading="lazy" />
+                  ))}
+                </div>
+              )}
+              <div className="p-3 space-y-2">
+                <p className="font-semibold">{title}</p>
+                {description && <p className="whitespace-pre-wrap text-foreground/90">{description}</p>}
+                {hashtags.length > 0 && <p className="text-primary text-xs">{hashtags.join(" ")}</p>}
+              </div>
             </div>
-          ))}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Publier sur</label>
-            <div className="flex flex-wrap gap-2">
-              {PLATFORMS.map((p) => (
-                <button key={p.key} onClick={() => togglePlat(p.key)}
-                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${platforms.includes(p.key) ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted"}`}>
-                  {platformIcon(p.key)}{p.label}
-                </button>
-              ))}
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button onClick={() => finalize("published")}><Send className="h-4 w-4" />Publier maintenant</Button>
+              <Button variant="secondary" onClick={() => finalize("scheduled")}><Calendar className="h-4 w-4" />Planifier au {date}</Button>
+              <Button variant="outline" onClick={() => setStep("form")}>← Modifier</Button>
             </div>
           </div>
-          <div className="flex gap-2 pt-2">
-            <Button onClick={submit}><Calendar className="h-4 w-4" />Créer & planifier</Button>
-            <Button variant="outline" onClick={onClose}>Annuler</Button>
-          </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );

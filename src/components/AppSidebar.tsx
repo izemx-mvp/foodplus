@@ -24,7 +24,6 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-semibold">Foodplus</span>
-            <span className="text-[10px] text-muted-foreground">Groupe LRUCH · Sales OS</span>
           </div>
         </div>
       </SidebarHeader>
@@ -52,7 +51,7 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="border-t">
         <div className="px-2 py-2 text-[10px] text-muted-foreground group-data-[collapsible=icon]:hidden">
-          © Foodplus · Sales OS
+          © Foodplus
         </div>
       </SidebarFooter>
     </Sidebar>
