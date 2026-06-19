@@ -218,19 +218,19 @@ function OrdersTable({ orders, onSelect, on360 }: { orders: Order[]; onSelect: (
 }
 
 function currentResponsible(o: Order): { role: TeamRole; person: string } {
-  const idx = WORKFLOW_STEPS.findIndex((s) => s.key === o.currentStep);
-  if (idx <= 1) return { role: "commercial", person: o.commercial };
-  if (idx === 2) return { role: "adv", person: o.adv };
-  if (idx >= 3 && idx <= 5) return { role: "logistique", person: o.driver };
-  return { role: "facturation", person: TEAM.facturation[0] };
+  const role = STEP_ROLE[o.currentStep];
+  const fallback = role === "commercial" ? o.commercial
+    : role === "adv" ? o.adv
+    : role === "logistique" ? (o.driver && o.driver !== "—" ? o.driver : TEAM.logistique[0])
+    : TEAM.facturation[0];
+  return { role, person: o.workflow[o.currentStep].owner ?? fallback };
 }
 
 function nextResponsible(o: Order): { role: TeamRole; person: string } | null {
   const idx = WORKFLOW_STEPS.findIndex((s) => s.key === o.currentStep);
   if (idx >= WORKFLOW_STEPS.length - 1) return null;
   const nextKey = WORKFLOW_STEPS[idx + 1].key;
-  const fake = { ...o, currentStep: nextKey };
-  return currentResponsible(fake);
+  return currentResponsible({ ...o, currentStep: nextKey });
 }
 
 function TeamView({ orders, onPick }: { orders: Order[]; onPick: (person: string) => void }) {
