@@ -478,11 +478,12 @@ function CreatePostDialog({ open, onClose, initialDate = "" }: { open: boolean; 
   const [hashtagsRaw, setHashtagsRaw] = useState("#Foodplus #Maroc");
   const [platforms, setPlatforms] = useState<SocialPlatform[]>(["instagram"]);
   const [date, setDate] = useState(initialDate || new Date().toISOString().slice(0, 10));
+  const [time, setTime] = useState("10:00");
   useEffect(() => { if (initialDate) setDate(initialDate); }, [initialDate]);
 
   const reset = () => {
     setStep("form"); setTitle(""); setDescription(""); setImages([""]); setImageCount(1);
-    setHashtagsRaw("#Foodplus #Maroc"); setPlatforms(["instagram"]);
+    setHashtagsRaw("#Foodplus #Maroc"); setPlatforms(["instagram"]); setTime("10:00");
   };
 
   const setCount = (n: number) => {
