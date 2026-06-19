@@ -434,6 +434,73 @@ function OrderCard({ order, onDragStart, onDragEnd, onSelect, on360 }: { order: 
   );
 }
 
+/* ------------ Responsability + horizontal workflow ------------ */
+function ResponsabilityPanel({ order }: { order: Order }) {
+  const cur = currentResponsible(order);
+  const nxt = nextResponsible(order);
+  const allPeople = TEAM[cur.role];
+  return (
+    <div className="rounded-md border bg-muted/30 p-2.5 space-y-2">
+      <div className="grid gap-2 sm:grid-cols-2 text-xs">
+        <div>
+          <p className="text-[10px] uppercase text-muted-foreground">Responsable actuel</p>
+          <div className="flex items-center gap-1.5 mt-1">
+            <UserCheck className="h-3.5 w-3.5 text-primary" />
+            <Select value={cur.person} onValueChange={(v) => { actions.reassignOrder(order.id, cur.role, v); toast.success(`Réassigné à ${v}`); }}>
+              <SelectTrigger className="h-7 text-xs flex-1"><SelectValue /></SelectTrigger>
+              <SelectContent>{allPeople.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+            </Select>
+            <Badge variant="outline" className="text-[9px]">{ROLE_LABEL[cur.role]}</Badge>
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase text-muted-foreground">Prochaine étape</p>
+          <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs">
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+            {nxt ? <><span className="font-medium">{nxt.person}</span><Badge variant="outline" className="text-[9px]">{ROLE_LABEL[nxt.role]}</Badge></> : <span className="text-muted-foreground">Commande clôturée</span>}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HorizontalWorkflow({ order }: { order: Order }) {
+  const STAGES: { key: WorkflowStepKey[]; label: string; role: TeamRole }[] = [
+    { key: ["creation", "validation_commerciale"], label: "Commercial", role: "commercial" },
+    { key: ["validation_adv"], label: "ADV", role: "adv" },
+    { key: ["preparation_logistique", "expedition"], label: "Logistique", role: "logistique" },
+    { key: ["livraison"], label: "Livraison", role: "logistique" },
+    { key: ["facturation", "paiement", "cloture"], label: "Facturation", role: "facturation" },
+  ];
+  const curIdx = WORKFLOW_STEPS.findIndex((s) => s.key === order.currentStep);
+  return (
+    <div className="flex items-stretch gap-1 overflow-x-auto">
+      {STAGES.map((st, i) => {
+        const stepIdxs = st.key.map((k) => WORKFLOW_STEPS.findIndex((s) => s.key === k));
+        const maxIdx = Math.max(...stepIdxs);
+        const minIdx = Math.min(...stepIdxs);
+        const status: "done" | "current" | "pending" = curIdx > maxIdx ? "done" : curIdx >= minIdx ? "current" : "pending";
+        const days = st.key.reduce((n, k) => n + (order.workflow[k].durationDays ?? 0), 0);
+        const owner = st.role === "commercial" ? order.commercial : st.role === "adv" ? order.adv : st.role === "logistique" ? order.driver : TEAM.facturation[0];
+        const tone = status === "done" ? "bg-success/15 text-success border-success/40"
+          : status === "current" ? "bg-warning/15 text-warning-foreground border-warning/40"
+          : "bg-muted/30 text-muted-foreground border-border";
+        return (
+          <div key={i} className={"flex-1 min-w-[110px] rounded-md border px-2 py-1.5 " + tone}>
+            <div className="flex items-center justify-between text-[10px] font-semibold uppercase">
+              <span>{st.label}</span>
+              {status === "done" ? <CheckCircle2 className="h-3 w-3" /> : status === "current" ? <Clock className="h-3 w-3" /> : <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />}
+            </div>
+            <p className="text-[10px] mt-0.5 truncate">👤 {owner}</p>
+            <p className="text-[9px] opacity-70">{days ? `${days}j` : "—"}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ------------ Sheet 6 onglets ------------ */
 function OrderSheet({ id, onClose, on360 }: { id: string | null; onClose: () => void; on360: () => void }) {
   const order = useStore((s) => s.orders.find((o) => o.id === id) ?? null);
