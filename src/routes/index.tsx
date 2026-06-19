@@ -18,14 +18,15 @@ export const Route = createFileRoute("/")({
 function Dashboard() {
   const leads = useStore((s) => s.leads);
   const orders = useStore((s) => s.orders);
-  const deals = useStore((s) => s.deals);
   const [refreshing, setRefreshing] = useState(false);
 
-  const qualified = leads.filter((l) => l.status === "qualified" || l.status === "hot").length;
-  const conversion = Math.round((deals.filter((d) => d.stage === "won").length / deals.length) * 100);
+  const qualified = leads.filter((l) => l.status === "qualified" || l.status === "negotiation").length;
+  const won = leads.filter((l) => l.status === "won");
+  const conversion = Math.round((won.length / leads.length) * 100);
   const delivered = orders.filter((o) => o.status === "delivered").length;
   const delayed = orders.filter((o) => o.status === "delayed").length;
-  const revenue = deals.filter((d) => d.stage === "won").reduce((s, d) => s + d.value, 0);
+  const revenue = won.reduce((s, l) => s + l.value, 0);
+  const pipeline = leads.filter((l) => l.status !== "lost" && l.status !== "won").reduce((s, l) => s + l.value, 0);
 
   const kpis = [
     { label: "Leads générés", value: leads.length, delta: "+12%", up: true, icon: Users, iconClass: "bg-info/15 text-info" },
@@ -52,6 +53,9 @@ function Dashboard() {
         status: "new",
         email: `contact${i}@nouveau.ma`,
         phone: "+212 6XX XXX XXX",
+        value: 40000 + Math.floor(Math.random() * 80000),
+        notes: "Lead généré par scan IA (LinkedIn + annuaires).",
+        nextAction: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
       });
     }
     toast.success("3 nouveaux leads générés par IA", { description: "Sources : LinkedIn Sales Nav + Annuaire CGEM" });
@@ -117,7 +121,7 @@ function Dashboard() {
           <CardContent>
             <ChartBars />
             <div className="mt-4 grid grid-cols-3 gap-4 border-t pt-4">
-              <div><p className="text-xs text-muted-foreground">Pipeline total</p><p className="text-lg font-semibold">{(deals.reduce((s, d) => s + d.value, 0) / 1000).toFixed(0)}K MAD</p></div>
+              <div><p className="text-xs text-muted-foreground">Pipeline total</p><p className="text-lg font-semibold">{(pipeline / 1000).toFixed(0)}K MAD</p></div>
               <div><p className="text-xs text-muted-foreground">CA gagné</p><p className="text-lg font-semibold text-success">{(revenue / 1000).toFixed(0)}K MAD</p></div>
               <div><p className="text-xs text-muted-foreground">Panier moyen</p><p className="text-lg font-semibold">{Math.round(orders.reduce((s, o) => s + o.amount, 0) / orders.length / 1000)}K MAD</p></div>
             </div>
