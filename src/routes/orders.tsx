@@ -14,13 +14,13 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, actions } from "@/lib/store";
 import {
-  ORDER_STATUSES, WORKFLOW_STEPS, WAREHOUSES, buildWorkflow,
-  type Order, type OrderStatus, type OrderPriority, type Warehouse, type WorkflowStepKey,
+  ORDER_STATUSES, WORKFLOW_STEPS, WAREHOUSES, buildWorkflow, TEAM, ROLE_LABEL,
+  type Order, type OrderStatus, type OrderPriority, type Warehouse, type WorkflowStepKey, type TeamRole,
 } from "@/lib/mock-data";
 import {
   Package, Truck, CheckCircle2, AlertTriangle, Plus, Download, RefreshCw, Search, Eye,
   ArrowRight, MessageSquare, FileText, Send, Sparkles, Mail, Phone, User, Building2,
-  CreditCard, Bot, LayoutGrid, Trash2, GripVertical, X,
+  CreditCard, Bot, LayoutGrid, Trash2, GripVertical, X, Clock, UserCheck, Users, Bell, Table as TableIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
