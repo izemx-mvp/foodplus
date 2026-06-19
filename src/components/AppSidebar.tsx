@@ -51,7 +51,7 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="border-t">
         <div className="px-2 py-2 text-[10px] text-muted-foreground group-data-[collapsible=icon]:hidden">
-          © Foodplus · Sales OS
+          © Foodplus
         </div>
       </SidebarFooter>
     </Sidebar>
