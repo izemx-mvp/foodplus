@@ -18,6 +18,7 @@ export const Route = createFileRoute("/")({
 function Dashboard() {
   const leads = useStore((s) => s.leads);
   const orders = useStore((s) => s.orders);
+  const navigate = useNavigate();
   const [refreshing, setRefreshing] = useState(false);
 
   const qualified = leads.filter((l) => l.status === "qualified" || l.status === "negotiation").length;
