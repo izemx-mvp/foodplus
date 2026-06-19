@@ -1,15 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
-import { BrandLogo } from "@/components/BrandLogo";
 import { useStore, actions } from "@/lib/store";
-import type { SocialPlatform, PostStatus, SocialPost } from "@/lib/mock-data";
-import { Sparkles, CalendarDays, Wand2 } from "lucide-react";
+import type { SocialPlatform, PostTone, PostIdea, SocialPost } from "@/lib/mock-data";
+import { Sparkles, Plus, Calendar, Send, Trash2, Image as ImageIcon, X, Instagram, Facebook, Linkedin } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/marketing")({
@@ -17,175 +19,486 @@ export const Route = createFileRoute("/marketing")({
   component: MarketingPage,
 });
 
-const statusTone = (s: PostStatus) => s === "published" ? "success" : s === "scheduled" ? "info" : s === "failed" ? "destructive" : "warning";
-const statusLabel = (s: PostStatus) => ({ published: "Publié", scheduled: "Programmé", failed: "Échec", draft: "Brouillon" }[s]);
-const platformBrand = (p: SocialPlatform) => p;
-const platformTone = (p: SocialPlatform) => p === "facebook" ? "info" : p === "instagram" ? "instagram" : "linkedin";
+const PLATFORMS: { key: SocialPlatform; label: string; color: string }[] = [
+  { key: "instagram", label: "Instagram", color: "bg-pink-500" },
+  { key: "facebook", label: "Facebook", color: "bg-blue-600" },
+  { key: "linkedin", label: "LinkedIn", color: "bg-sky-700" },
+  { key: "tiktok", label: "TikTok", color: "bg-black" },
+  { key: "x", label: "X", color: "bg-neutral-800" },
+];
+const TONES: PostTone[] = ["Professionnel", "Convivial", "Premium", "Inspirant", "Humoristique"];
+
+function platformIcon(p: SocialPlatform) {
+  if (p === "instagram") return <Instagram className="h-3 w-3" />;
+  if (p === "facebook") return <Facebook className="h-3 w-3" />;
+  if (p === "linkedin") return <Linkedin className="h-3 w-3" />;
+  return <span className="text-[10px] font-bold uppercase">{p[0]}</span>;
+}
 
 function MarketingPage() {
-  const posts = useStore((s) => s.posts);
-  const [genOpen, setGenOpen] = useState(false);
-  const [platform, setPlatform] = useState<SocialPlatform>("instagram");
-  const [prompt, setPrompt] = useState("Promo huile d'argan bio");
-  const [generated, setGenerated] = useState<SocialPost | null>(null);
-
-  const generate = () => {
-    const templates: Record<SocialPlatform, string> = {
-      instagram: `✨ ${prompt} ✨\n\nDécouvrez l'excellence Foodplus — qualité premium, sourcing local, prix exclusifs pour les pros 🌿\n📍 Livraison dans tout le Maroc`,
-      facebook: `${prompt}\n\nFoodplus accompagne les professionnels marocains depuis plus de 20 ans. Profitez de notre expertise et de notre catalogue de 1500+ références.\n\n👉 Demandez votre devis personnalisé.`,
-      linkedin: `${prompt} — par Foodplus (Groupe LRUCH).\n\nNotre engagement : qualité, traçabilité, et accompagnement sur-mesure des acteurs B2B de l'agroalimentaire au Maroc.\n\n#B2B #FoodIndustry #Maroc`,
-    };
-    const hashtags = platform === "instagram" ? ["#FoodplusMaroc", "#MadeInMorocco", "#BioMA", "#Premium"]
-      : platform === "facebook" ? ["#Foodplus", "#Pro", "#Maroc"]
-      : ["#FoodIndustry", "#B2B", "#LRUCH", "#Maroc"];
-    setGenerated({
-      id: `P-${Date.now()}`, platform, title: prompt, content: templates[platform],
-      hashtags, date: new Date().toISOString().slice(0,10), status: "draft",
-    });
-  };
-
-  const autoFill = () => {
-    const ideas = ["Recette signature du chef", "Témoignage client", "Nouveauté catalogue", "Coulisses entrepôt", "Conseil pro de la semaine"];
-    const plats: SocialPlatform[] = ["instagram", "facebook", "linkedin"];
-    for (let i = 0; i < 5; i++) {
-      actions.addPost({
-        id: `P-${Date.now()}-${i}`,
-        platform: plats[i % 3],
-        title: ideas[i],
-        content: `Contenu IA — ${ideas[i]}`,
-        hashtags: ["#Foodplus", "#IA"],
-        date: new Date(Date.now() + (i + 1) * 86400000).toISOString().slice(0,10),
-        status: "scheduled",
-      });
-    }
-    toast.success("Semaine auto-remplie", { description: "5 posts IA programmés sur 7 jours" });
-  };
-
-  // simple 7-day grid
-  const today = new Date();
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today); d.setDate(today.getDate() + i - 1);
-    return d.toISOString().slice(0,10);
-  });
-
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Marketing IA & Community Management</h1>
-          <p className="text-sm text-muted-foreground">Calendrier éditorial multi-réseaux · IA Foodplus v2</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={autoFill}><Wand2 className="h-4 w-4" /> Auto-remplir semaine</Button>
-          <Button variant="outline" onClick={() => toast.success("Campagne simulée envoyée", { description: "Reach estimé : 12.4K · Engagement : 8.2%" })}>Simuler campagne</Button>
-          <Button onClick={() => { setGenerated(null); setGenOpen(true); }}><Sparkles className="h-4 w-4" /> Générer post IA</Button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold">Marketing IA</h1>
+        <p className="text-sm text-muted-foreground">Configuration, idées de posts générés par IA, et planification multi-réseaux.</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-4 w-4 text-primary" /> Calendrier éditorial — 7 jours</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 gap-2 min-w-[700px]">
-            {days.map((day) => {
-              const dayPosts = posts.filter((p) => p.date === day);
-              const d = new Date(day);
-              const isToday = day === today.toISOString().slice(0,10);
-              return (
-                <div key={day} className={`rounded-lg border bg-card p-2 min-h-[180px] ${isToday ? "border-primary" : ""}`}>
-                  <div className="mb-2 text-xs">
-                    <div className="font-medium">{d.toLocaleDateString("fr-FR", { weekday: "short" })}</div>
-                    <div className="text-muted-foreground">{d.getDate()}/{d.getMonth() + 1}</div>
-                  </div>
-                  <div className="space-y-1.5">
-                    {dayPosts.map((p) => (
-                      <div key={p.id} className="rounded border bg-background p-1.5 text-[11px]">
-                        <div className="flex items-center gap-1.5">
-                          <BrandLogo brand={platformBrand(p.platform)} className="h-3 w-3" />
-                          <StatusBadge tone={statusTone(p.status)} className="text-[9px] px-1 py-0">{statusLabel(p.status)}</StatusBadge>
-                        </div>
-                        <div className="mt-1 truncate font-medium">{p.title}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="config">
+        <TabsList>
+          <TabsTrigger value="config">Configuration</TabsTrigger>
+          <TabsTrigger value="ideas">Idées</TabsTrigger>
+          <TabsTrigger value="calendar">Calendrier</TabsTrigger>
+        </TabsList>
+        <TabsContent value="config" className="mt-4"><ConfigTab /></TabsContent>
+        <TabsContent value="ideas" className="mt-4"><IdeasTab /></TabsContent>
+        <TabsContent value="calendar" className="mt-4"><CalendarTab /></TabsContent>
+      </Tabs>
+    </div>
+  );
+}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {posts.slice(0, 9).map((p) => (
-          <Card key={p.id}>
+function ConfigTab() {
+  const config = useStore((s) => s.marketing);
+  const [website, setWebsite] = useState(config.website);
+  const [logo, setLogo] = useState(config.logo);
+  const [description, setDescription] = useState(config.description);
+  const [tone, setTone] = useState<PostTone>(config.tone);
+  const [frequency, setFrequency] = useState(config.frequency);
+
+  const save = () => {
+    actions.updateMarketingConfig({ website, logo, description, tone, frequency });
+    toast.success("Configuration enregistrée");
+  };
+
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">Paramètres de marque</CardTitle></CardHeader>
+      <CardContent className="space-y-4 max-w-2xl">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Site web</label>
+          <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://foodplus.ma" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Logo (URL)</label>
+          <Input value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="https://…/logo.png" />
+          {logo && <img src={logo} alt="logo" className="h-12 mt-2 rounded border" onError={(e) => (e.currentTarget.style.display = "none")} />}
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium">Description de Foodplus</label>
+          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Tonalité par défaut</label>
+            <Select value={tone} onValueChange={(v) => setTone(v as PostTone)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{TONES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Fréquence auto-génération</label>
+            <Select value={frequency} onValueChange={(v) => setFrequency(v as typeof frequency)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Quotidien</SelectItem>
+                <SelectItem value="3xweek">3× par semaine</SelectItem>
+                <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                <SelectItem value="monthly">Mensuel</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <Button onClick={save}>Enregistrer</Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+const ideaTemplates: Omit<PostIdea, "id">[] = [
+  { title: "Top 3 produits du mois", hook: "Découvrez nos best-sellers de juin chez les chefs marocains.", suggestedPlatforms: ["instagram", "facebook"], tone: "Convivial" },
+  { title: "Interview client - Hôtel Hyatt", hook: "Comment Foodplus accompagne les palaces marocains.", suggestedPlatforms: ["linkedin"], tone: "Professionnel" },
+  { title: "Recette express - Tagliatelles aux épices", hook: "Une recette en 15 min avec nos épices premium.", suggestedPlatforms: ["instagram", "tiktok"], tone: "Inspirant" },
+  { title: "Visite d'usine - sourcing local", hook: "Voyage dans nos partenariats producteurs locaux.", suggestedPlatforms: ["instagram", "linkedin"], tone: "Premium" },
+  { title: "Astuce du chef - conserver les épices", hook: "3 erreurs à éviter pour garder vos épices fraîches.", suggestedPlatforms: ["facebook", "instagram"], tone: "Convivial" },
+];
+
+function IdeasTab() {
+  const ideas = useStore((s) => s.ideas);
+  const [planning, setPlanning] = useState<PostIdea | null>(null);
+
+  const generate = () => {
+    const picks = [...ideaTemplates].sort(() => Math.random() - 0.5).slice(0, 3).map((t, i) => ({
+      ...t,
+      id: `I-${Date.now()}-${i}`,
+    }));
+    actions.addIdeas(picks);
+    toast.success("3 nouvelles idées générées par IA");
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">{ideas.length} idées prêtes à être planifiées</p>
+        <Button onClick={generate}><Sparkles className="h-4 w-4" />Générer plus d'idées</Button>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {ideas.map((i) => (
+          <Card key={i.id}>
             <CardContent className="p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BrandLogo brand={platformBrand(p.platform)} className="h-5 w-5" />
-                  <StatusBadge tone={platformTone(p.platform)}>{p.platform}</StatusBadge>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium">{i.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{i.hook}</p>
                 </div>
-                <StatusBadge tone={statusTone(p.status)}>{statusLabel(p.status)}</StatusBadge>
-              </div>
-              <div>
-                <div className="font-medium text-sm">{p.title}</div>
-                <p className="mt-1 text-xs text-muted-foreground line-clamp-3">{p.content}</p>
+                <Button size="icon" variant="ghost" onClick={() => { actions.removeIdea(i.id); toast.success("Idée supprimée"); }}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
               <div className="flex flex-wrap gap-1">
-                {p.hashtags.map((h) => <span key={h} className="text-[10px] text-primary">{h}</span>)}
+                <Badge variant="secondary">{i.tone}</Badge>
+                {i.suggestedPlatforms.map((p) => (
+                  <Badge key={p} variant="outline" className="gap-1">{platformIcon(p)}{p}</Badge>
+                ))}
               </div>
-              <div className="flex gap-2 pt-1 border-t">
-                {p.status !== "published" && (
-                  <Button size="sm" variant="outline" onClick={() => { actions.updatePost(p.id, { status: "scheduled" }); toast.success("Post programmé"); }}>Programmer</Button>
-                )}
-                <Button size="sm" onClick={() => { actions.updatePost(p.id, { status: "published" }); toast.success("Post publié", { description: `Sur ${p.platform}` }); }}>Publier</Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setPlanning(i)}><Calendar className="h-3.5 w-3.5" />Planifier</Button>
+                <Button size="sm" onClick={() => {
+                  actions.addPost({
+                    id: `P-${Date.now()}`,
+                    platforms: i.suggestedPlatforms,
+                    title: i.title,
+                    content: i.hook,
+                    hashtags: ["#Foodplus", "#Maroc"],
+                    date: new Date().toISOString().slice(0, 10),
+                    status: "published",
+                    images: ["Visuel généré pour " + i.title],
+                    tone: i.tone,
+                  });
+                  actions.removeIdea(i.id);
+                  toast.success("Post publié");
+                }}><Send className="h-3.5 w-3.5" />Publier</Button>
               </div>
             </CardContent>
           </Card>
         ))}
+        {ideas.length === 0 && <p className="text-sm text-muted-foreground col-span-2 py-10 text-center">Aucune idée. Cliquez sur "Générer plus d'idées".</p>}
       </div>
 
-      <Dialog open={genOpen} onOpenChange={setGenOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-linkedin" /> Générer un post avec l'IA</DialogTitle>
-          </DialogHeader>
-          {!generated ? (
+      <PlanDialog idea={planning} onClose={() => setPlanning(null)} />
+    </div>
+  );
+}
+
+function PlanDialog({ idea, onClose }: { idea: PostIdea | null; onClose: () => void }) {
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [platforms, setPlatforms] = useState<SocialPlatform[]>(idea?.suggestedPlatforms || []);
+
+  const togglePlat = (p: SocialPlatform) => setPlatforms((cur) => cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]);
+
+  return (
+    <Dialog open={!!idea} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        {idea && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Planifier · {idea.title}</DialogTitle>
+              <DialogDescription>{idea.hook}</DialogDescription>
+            </DialogHeader>
             <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium">Plateforme</label>
-                <div className="mt-1 flex gap-2">
-                  {(["instagram","facebook","linkedin"] as SocialPlatform[]).map((p) => (
-                    <button key={p} onClick={() => setPlatform(p)} className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${platform === p ? "border-primary bg-primary/5" : ""}`}>
-                      <BrandLogo brand={p} className="h-4 w-4" /> {p}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Date de publication</label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Plateformes</label>
+                <div className="flex flex-wrap gap-2">
+                  {PLATFORMS.map((p) => (
+                    <button key={p.key} onClick={() => togglePlat(p.key)}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${platforms.includes(p.key) ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted"}`}>
+                      {platformIcon(p.key)}{p.label}
                     </button>
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-medium">Sujet / brief</label>
-                <Input value={prompt} onChange={(e) => setPrompt(e.target.value)} />
-              </div>
-              <Button onClick={generate}><Sparkles className="h-4 w-4" /> Générer</Button>
+              <Button onClick={() => {
+                if (!platforms.length) return toast.error("Sélectionnez au moins une plateforme");
+                actions.addPost({
+                  id: `P-${Date.now()}`,
+                  platforms,
+                  title: idea.title,
+                  content: idea.hook,
+                  hashtags: ["#Foodplus"],
+                  date,
+                  status: "scheduled",
+                  images: ["Visuel pour " + idea.title],
+                  tone: idea.tone,
+                });
+                actions.removeIdea(idea.id);
+                toast.success("Post planifié");
+                onClose();
+              }}><Calendar className="h-4 w-4" />Planifier</Button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              <Textarea value={generated.content} onChange={(e) => setGenerated({ ...generated, content: e.target.value })} rows={8} />
-              <div className="flex flex-wrap gap-1">
-                {generated.hashtags.map((h) => <span key={h} className="text-xs text-primary">{h}</span>)}
-              </div>
-              <div className="rounded-md bg-muted p-3 text-xs">
-                <p className="font-medium">🎨 Description visuelle IA</p>
-                <p className="text-muted-foreground mt-1">Photo en lumière naturelle, produit en gros plan sur fond minéral marocain (zellige beige), tons chauds, ambiance premium artisanale.</p>
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={() => { actions.addPost(generated); toast.success("Post ajouté au calendrier"); setGenOpen(false); }}>Ajouter au calendrier</Button>
-                <Button variant="outline" onClick={() => { actions.addPost({ ...generated, status: "published" }); toast.success("Publié immédiatement"); setGenOpen(false); }}>Publier maintenant</Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CalendarTab() {
+  const posts = useStore((s) => s.posts);
+  const [calView, setCalView] = useState<"grid" | "agenda">("grid");
+  const [creating, setCreating] = useState(false);
+  const [selected, setSelected] = useState<SocialPost | null>(null);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <Tabs value={calView} onValueChange={(v) => setCalView(v as "grid" | "agenda")}>
+          <TabsList>
+            <TabsTrigger value="grid">Grille</TabsTrigger>
+            <TabsTrigger value="agenda">Agenda</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" />Générer un post</Button>
+      </div>
+
+      {calView === "grid" ? <CalendarGrid posts={posts} onSelect={setSelected} /> : <AgendaList posts={posts} onSelect={setSelected} />}
+
+      <CreatePostDialog open={creating} onClose={() => setCreating(false)} />
+      <PostDialog post={selected} onClose={() => setSelected(null)} />
     </div>
+  );
+}
+
+function CalendarGrid({ posts, onSelect }: { posts: SocialPost[]; onSelect: (p: SocialPost) => void }) {
+  const today = new Date();
+  const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const year = cursor.getFullYear(), month = cursor.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const byDay = useMemo(() => {
+    const m: Record<string, SocialPost[]> = {};
+    posts.forEach((p) => { (m[p.date] ||= []).push(p); });
+    return m;
+  }, [posts]);
+
+  const cells: (number | null)[] = [];
+  const offset = (firstDay + 6) % 7;
+  for (let i = 0; i < offset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="font-medium capitalize">{cursor.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</div>
+          <div className="flex gap-1">
+            <Button size="sm" variant="outline" onClick={() => setCursor(new Date(year, month - 1, 1))}>‹</Button>
+            <Button size="sm" variant="outline" onClick={() => setCursor(new Date(today.getFullYear(), today.getMonth(), 1))}>Aujourd'hui</Button>
+            <Button size="sm" variant="outline" onClick={() => setCursor(new Date(year, month + 1, 1))}>›</Button>
+          </div>
+        </div>
+        <div className="grid grid-cols-7 gap-1 text-[10px] uppercase text-muted-foreground">
+          {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((d) => <div key={d} className="px-2 py-1">{d}</div>)}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((d, i) => {
+            if (d === null) return <div key={i} className="h-24 rounded bg-muted/20" />;
+            const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            const items = byDay[iso] || [];
+            const isToday = iso === today.toISOString().slice(0, 10);
+            return (
+              <div key={i} className={`h-24 rounded border p-1 overflow-hidden ${isToday ? "border-primary bg-primary/5" : "bg-card"}`}>
+                <div className="text-[10px] text-muted-foreground">{d}</div>
+                <div className="space-y-0.5">
+                  {items.slice(0, 2).map((p) => (
+                    <button key={p.id} onClick={() => onSelect(p)} className="block w-full truncate rounded bg-primary/10 px-1 text-[10px] text-left text-primary hover:bg-primary/20">
+                      {p.title}
+                    </button>
+                  ))}
+                  {items.length > 2 && <div className="text-[10px] text-muted-foreground px-1">+{items.length - 2}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AgendaList({ posts, onSelect }: { posts: SocialPost[]; onSelect: (p: SocialPost) => void }) {
+  const sorted = [...posts].sort((a, b) => a.date.localeCompare(b.date));
+  return (
+    <Card>
+      <CardContent className="p-0 divide-y">
+        {sorted.map((p) => (
+          <button key={p.id} onClick={() => onSelect(p)} className="w-full text-left px-4 py-3 hover:bg-muted/40 flex items-center gap-3">
+            <div className="text-xs text-muted-foreground w-24">{p.date}</div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">{p.title}</p>
+              <p className="text-xs text-muted-foreground truncate">{p.content}</p>
+            </div>
+            <div className="flex gap-1">{p.platforms.map((pl) => <Badge key={pl} variant="outline" className="gap-1">{platformIcon(pl)}</Badge>)}</div>
+            <StatusBadge tone={p.status === "published" ? "success" : p.status === "scheduled" ? "info" : p.status === "failed" ? "destructive" : "muted"}>
+              {p.status === "published" ? "Publié" : p.status === "scheduled" ? "Planifié" : p.status === "failed" ? "Échec" : "Brouillon"}
+            </StatusBadge>
+          </button>
+        ))}
+        {sorted.length === 0 && <p className="px-4 py-10 text-center text-sm text-muted-foreground">Aucun post.</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CreatePostDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const cfg = useStore((s) => s.marketing);
+  const [imageCount, setImageCount] = useState(1);
+  const [images, setImages] = useState<string[]>([""]);
+  const [tone, setTone] = useState<PostTone>(cfg.tone);
+  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState("");
+  const [platforms, setPlatforms] = useState<SocialPlatform[]>(["instagram"]);
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+
+  const setCount = (n: number) => {
+    const v = Math.max(0, Math.min(10, n));
+    setImageCount(v);
+    setImages((cur) => {
+      const next = [...cur];
+      while (next.length < v) next.push("");
+      next.length = v;
+      return next;
+    });
+  };
+
+  const togglePlat = (p: SocialPlatform) => setPlatforms((cur) => cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]);
+
+  const submit = () => {
+    if (!title) return toast.error("Titre requis");
+    if (!platforms.length) return toast.error("Sélectionnez au moins une plateforme");
+    actions.addPost({
+      id: `P-${Date.now()}`,
+      platforms,
+      title,
+      content: description,
+      hashtags: ["#Foodplus"],
+      date,
+      status: "scheduled",
+      images: images.filter(Boolean),
+      tone,
+    });
+    toast.success("Post créé et planifié");
+    setTitle(""); setDescription(""); setImages([""]); setImageCount(1);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" />Générer un post</DialogTitle>
+          <DialogDescription>Décrivez l'idée du post et les visuels souhaités.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Titre du post</label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex : Nouveau partenariat avec…" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Idée / description du post</label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Décrivez l'angle, le message clé…" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Tonalité</label>
+              <Select value={tone} onValueChange={(v) => setTone(v as PostTone)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{TONES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Date</label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Nombre d'images</label>
+            <Input type="number" min={0} max={10} value={imageCount} onChange={(e) => setCount(Number(e.target.value))} className="w-24" />
+          </div>
+          {images.map((img, i) => (
+            <div key={i} className="space-y-1.5">
+              <label className="text-xs font-medium flex items-center gap-1"><ImageIcon className="h-3 w-3" />Description image {i + 1}</label>
+              <Input value={img} onChange={(e) => setImages((cur) => cur.map((v, j) => j === i ? e.target.value : v))} placeholder="Ex : Bouteille d'huile sur table en bois" />
+            </div>
+          ))}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Publier sur</label>
+            <div className="flex flex-wrap gap-2">
+              {PLATFORMS.map((p) => (
+                <button key={p.key} onClick={() => togglePlat(p.key)}
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${platforms.includes(p.key) ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted"}`}>
+                  {platformIcon(p.key)}{p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button onClick={submit}><Calendar className="h-4 w-4" />Créer & planifier</Button>
+            <Button variant="outline" onClick={onClose}>Annuler</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PostDialog({ post, onClose }: { post: SocialPost | null; onClose: () => void }) {
+  return (
+    <Dialog open={!!post} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        {post && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>{post.title}</span>
+                <Button size="icon" variant="ghost" onClick={onClose}><X className="h-4 w-4" /></Button>
+              </DialogTitle>
+              <DialogDescription>{post.date} · {post.tone}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              <p>{post.content}</p>
+              <div className="flex flex-wrap gap-1">
+                {post.hashtags.map((h) => <Badge key={h} variant="secondary">{h}</Badge>)}
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Plateformes</p>
+                <div className="flex gap-1">{post.platforms.map((p) => <Badge key={p} variant="outline" className="gap-1">{platformIcon(p)}{p}</Badge>)}</div>
+              </div>
+              {post.images.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Visuels</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
+                    {post.images.map((img, i) => <li key={i}>{img}</li>)}
+                  </ul>
+                </div>
+              )}
+              <div className="flex gap-2">
+                {post.status !== "published" && (
+                  <Button onClick={() => { actions.updatePost(post.id, { status: "published" }); toast.success("Post publié"); onClose(); }}>
+                    <Send className="h-4 w-4" />Publier maintenant
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => { actions.removePost(post.id); toast.success("Post supprimé"); onClose(); }}>
+                  <Trash2 className="h-4 w-4" />Supprimer
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
