@@ -128,6 +128,7 @@ const ideaTemplates: Omit<PostIdea, "id">[] = [
 function IdeasTab() {
   const ideas = useStore((s) => s.ideas);
   const [planning, setPlanning] = useState<PostIdea | null>(null);
+  const [details, setDetails] = useState<PostIdea | null>(null);
 
   const generate = () => {
     const picks = [...ideaTemplates].sort(() => Math.random() - 0.5).slice(0, 3).map((t, i) => ({
@@ -144,26 +145,24 @@ function IdeasTab() {
         <p className="text-sm text-muted-foreground">{ideas.length} idées prêtes à être planifiées</p>
         <Button onClick={generate}><Sparkles className="h-4 w-4" />Générer plus d'idées</Button>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {ideas.map((i) => (
-          <Card key={i.id}>
+          <Card key={i.id} className="overflow-hidden group hover:shadow-md transition cursor-pointer" onClick={() => setDetails(i)}>
+            <div className="relative aspect-video overflow-hidden bg-muted">
+              <img src={imgUrl(i.id, 0, 600, 340)} alt={i.title} className="h-full w-full object-cover group-hover:scale-105 transition" loading="lazy" />
+              <Badge className="absolute top-2 left-2 bg-background/90 text-foreground border">{i.tone}</Badge>
+            </div>
             <CardContent className="p-4 space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium">{i.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{i.hook}</p>
-                </div>
-                <Button size="icon" variant="ghost" onClick={() => { actions.removeIdea(i.id); toast.success("Idée supprimée"); }}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+              <div>
+                <p className="font-medium leading-tight">{i.title}</p>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{i.hook}</p>
               </div>
               <div className="flex flex-wrap gap-1">
-                <Badge variant="secondary">{i.tone}</Badge>
                 {i.suggestedPlatforms.map((p) => (
                   <Badge key={p} variant="outline" className="gap-1">{platformIcon(p)}{p}</Badge>
                 ))}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
                 <Button size="sm" variant="outline" onClick={() => setPlanning(i)}><Calendar className="h-3.5 w-3.5" />Planifier</Button>
                 <Button size="sm" onClick={() => {
                   actions.addPost({
@@ -174,21 +173,86 @@ function IdeasTab() {
                     hashtags: ["#Foodplus", "#Maroc"],
                     date: new Date().toISOString().slice(0, 10),
                     status: "published",
-                    images: ["Visuel généré pour " + i.title],
+                    images: ["Visuel principal pour " + i.title, "Visuel produit", "Visuel ambiance"],
                     tone: i.tone,
                   });
                   actions.removeIdea(i.id);
                   toast.success("Post publié");
                 }}><Send className="h-3.5 w-3.5" />Publier</Button>
+                <Button size="icon" variant="ghost" className="ml-auto" onClick={() => { actions.removeIdea(i.id); toast.success("Idée supprimée"); }}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </CardContent>
           </Card>
         ))}
-        {ideas.length === 0 && <p className="text-sm text-muted-foreground col-span-2 py-10 text-center">Aucune idée. Cliquez sur "Générer plus d'idées".</p>}
+        {ideas.length === 0 && <p className="text-sm text-muted-foreground col-span-full py-10 text-center">Aucune idée. Cliquez sur "Générer plus d'idées".</p>}
       </div>
 
       <PlanDialog idea={planning} onClose={() => setPlanning(null)} />
+      <IdeaDetailDialog idea={details} onClose={() => setDetails(null)} onPlan={(i) => { setDetails(null); setPlanning(i); }} />
     </div>
+  );
+}
+
+function IdeaDetailDialog({ idea, onClose, onPlan }: { idea: PostIdea | null; onClose: () => void; onPlan: (i: PostIdea) => void }) {
+  return (
+    <Dialog open={!!idea} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {idea && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" />{idea.title}</DialogTitle>
+              <DialogDescription>Tonalité : {idea.tone}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-3 gap-2">
+                {[0, 1, 2].map((i) => (
+                  <img key={i} src={imgUrl(idea.id, i, 400, 400)} alt="" className="aspect-square w-full rounded-lg object-cover border" loading="lazy" />
+                ))}
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Accroche</p>
+                <p>{idea.hook}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Plateformes suggérées</p>
+                <div className="flex flex-wrap gap-1">
+                  {idea.suggestedPlatforms.map((p) => (
+                    <Badge key={p} variant="outline" className="gap-1">{platformIcon(p)}{p}</Badge>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Hashtags suggérés</p>
+                <div className="flex flex-wrap gap-1">
+                  {["#Foodplus", "#Maroc", "#FoodService", "#" + idea.tone].map((h) => <Badge key={h} variant="secondary">{h}</Badge>)}
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button onClick={() => onPlan(idea)}><Calendar className="h-4 w-4" />Planifier</Button>
+                <Button variant="outline" onClick={() => {
+                  actions.addPost({
+                    id: `P-${Date.now()}`,
+                    platforms: idea.suggestedPlatforms,
+                    title: idea.title,
+                    content: idea.hook,
+                    hashtags: ["#Foodplus", "#Maroc"],
+                    date: new Date().toISOString().slice(0, 10),
+                    status: "published",
+                    images: ["Visuel 1", "Visuel 2", "Visuel 3"],
+                    tone: idea.tone,
+                  });
+                  actions.removeIdea(idea.id);
+                  toast.success("Post publié");
+                  onClose();
+                }}><Send className="h-4 w-4" />Publier maintenant</Button>
+              </div>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
