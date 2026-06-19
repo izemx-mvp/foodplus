@@ -448,7 +448,7 @@ function OrderSheet({ id, onClose, on360 }: { id: string | null; onClose: () => 
   return (
     <Sheet open={!!id} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col p-0">
-        <SheetHeader className="px-5 py-4 border-b">
+        <SheetHeader className="px-5 py-4 border-b space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div>
               <SheetTitle className="flex items-center gap-2">{order.id} · {order.client}</SheetTitle>
@@ -459,7 +459,10 @@ function OrderSheet({ id, onClose, on360 }: { id: string | null; onClose: () => 
               <Button size="sm" onClick={() => { actions.advanceOrderStep(order.id); toast.success("Étape suivante"); }}><ArrowRight className="h-4 w-4 mr-1" />Étape suivante</Button>
             </div>
           </div>
+          <ResponsabilityPanel order={order} />
+          <HorizontalWorkflow order={order} />
         </SheetHeader>
+
 
         <Tabs defaultValue="info" className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="mx-5 mt-3 justify-start gap-1 bg-muted/40 flex-wrap h-auto">
