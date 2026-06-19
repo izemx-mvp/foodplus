@@ -94,7 +94,7 @@ function Dashboard() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
-          <Card key={k.label} className="overflow-hidden">
+          <Card key={k.label} className="overflow-hidden cursor-pointer transition-shadow hover:shadow-md" onClick={() => navigate({ to: k.to })}>
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div>
