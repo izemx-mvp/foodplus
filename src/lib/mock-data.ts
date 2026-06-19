@@ -130,9 +130,10 @@ export type SocialPost = {
   title: string;
   content: string;
   hashtags: string[];
-  date: string; // ISO
+  date: string; // ISO YYYY-MM-DD
+  time?: string; // HH:mm
   status: PostStatus;
-  images: string[]; // descriptions
+  images: string[]; // descriptions / légendes
   tone: PostTone;
 };
 
