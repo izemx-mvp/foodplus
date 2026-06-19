@@ -482,7 +482,8 @@ function HorizontalWorkflow({ order }: { order: Order }) {
         const minIdx = Math.min(...stepIdxs);
         const status: "done" | "current" | "pending" = curIdx > maxIdx ? "done" : curIdx >= minIdx ? "current" : "pending";
         const days = st.key.reduce((n, k) => n + (order.workflow[k].durationDays ?? 0), 0);
-        const owner = st.role === "commercial" ? order.commercial : st.role === "adv" ? order.adv : st.role === "logistique" ? order.driver : TEAM.facturation[0];
+        const ownerStepKey = st.key.find((k) => order.workflow[k].owner) ?? st.key[0];
+        const owner = order.workflow[ownerStepKey].owner ?? "—";
         const tone = status === "done" ? "bg-success/15 text-success border-success/40"
           : status === "current" ? "bg-warning/15 text-warning-foreground border-warning/40"
           : "bg-muted/30 text-muted-foreground border-border";
