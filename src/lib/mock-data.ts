@@ -223,10 +223,6 @@ const mk = (s: Seed): Order => {
     clientInfo: { ice: s.ice, address: s.address, phone: s.phone, email: s.email },
     dueDate: s.dueDate, subtotal, tax, paid, currentStep,
     invoiceStatus: s.invoiceStatus,
-    priority: s.priority, commercial: s.commercial, adv: s.adv, warehouse: s.warehouse,
-    clientInfo: { ice: s.ice, address: s.address, phone: s.phone, email: s.email },
-    dueDate: s.dueDate, subtotal, tax, paid, currentStep,
-    invoiceStatus: s.invoiceStatus,
     communications: [
       { id: "c1", kind: "email", author: "Système", date: s.date, content: `Confirmation de commande ${s.id} envoyée à ${s.email}.` },
       { id: "c2", kind: "note", author: s.commercial, date: s.date, content: "Client prioritaire, suivi rapproché demandé." },
