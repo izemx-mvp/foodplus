@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, actions } from "@/lib/store";
-import { ORDER_STATUSES, type Order, type OrderStatus } from "@/lib/mock-data";
-import { Package, Truck, CheckCircle2, AlertTriangle, List, KanbanSquare, GripVertical, MapPin, User, X } from "lucide-react";
+import { ORDER_STATUSES, WORKFLOW_STEPS, type Order, type OrderStatus } from "@/lib/mock-data";
+import { Package, Truck, CheckCircle2, AlertTriangle, List, KanbanSquare, GripVertical, MapPin, User, X, Circle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/orders")({
@@ -178,28 +180,35 @@ function KanbanOrders({ orders, onSelect }: { orders: Order[]; onSelect: (o: Ord
 }
 
 function OrderDialog({ order, onClose }: { order: Order | null; onClose: () => void }) {
+  const live = useStore((s) => s.orders.find((o) => o.id === order?.id) ?? null);
+  const o = live ?? order;
+  const totalTasks = o ? WORKFLOW_STEPS.reduce((n, s) => n + o.workflow[s.key].tasks.length, 0) : 0;
+  const doneTasks = o ? WORKFLOW_STEPS.reduce((n, s) => n + o.workflow[s.key].tasks.filter((t) => t.done).length, 0) : 0;
+  const pct = totalTasks ? Math.round((doneTasks / totalTasks) * 100) : 0;
+
   return (
-    <Dialog open={!!order} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
-        {order && (
+    <Dialog open={!!order} onOpenChange={(x) => !x && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        {o && (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center justify-between">
-                <span>{order.id} · {order.client}</span>
+              <DialogTitle className="flex items-center justify-between gap-2">
+                <span>{o.id} · {o.client}</span>
                 <Button size="icon" variant="ghost" onClick={onClose}><X className="h-4 w-4" /></Button>
               </DialogTitle>
-              <DialogDescription>{order.date} · {order.city}</DialogDescription>
+              <DialogDescription>{o.date} · {o.city}</DialogDescription>
             </DialogHeader>
+
             <div className="grid gap-4 sm:grid-cols-2 text-sm">
               <div className="space-y-2">
-                <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" />{order.address}</div>
-                <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" />Livreur : {order.driver}</div>
-                <div>Total : <span className="font-semibold">{order.amount.toLocaleString()} MAD</span></div>
-                <div>Articles : <span className="font-semibold">{order.items}</span></div>
+                <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" />{o.address}</div>
+                <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" />Livreur : {o.driver}</div>
+                <div>Total : <span className="font-semibold">{o.amount.toLocaleString()} MAD</span></div>
+                <div>Articles : <span className="font-semibold">{o.items}</span></div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground">Statut</label>
-                <Select value={order.status} onValueChange={(v) => { actions.updateOrder(order.id, { status: v as OrderStatus }); toast.success(`Statut → ${statusMeta(v as OrderStatus).label}`); }}>
+                <Select value={o.status} onValueChange={(v) => { actions.updateOrder(o.id, { status: v as OrderStatus }); toast.success(`Statut → ${statusMeta(v as OrderStatus).label}`); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ORDER_STATUSES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
@@ -207,10 +216,57 @@ function OrderDialog({ order, onClose }: { order: Order | null; onClose: () => v
                 </Select>
               </div>
             </div>
+
             <div className="rounded-md border">
-              <div className="px-3 py-2 border-b text-xs font-medium text-muted-foreground uppercase">Détails</div>
+              <div className="flex items-center justify-between px-3 py-2 border-b">
+                <span className="text-xs font-medium uppercase text-muted-foreground">Workflow commande</span>
+                <span className="text-xs text-muted-foreground">{doneTasks}/{totalTasks} · {pct}%</span>
+              </div>
+              <div className="px-3 pt-2"><Progress value={pct} className="h-1.5" /></div>
+              <ol className="relative px-3 py-3 space-y-3">
+                {WORKFLOW_STEPS.map((s, idx) => {
+                  const st = o.workflow[s.key];
+                  const allDone = st.tasks.every((t) => t.done);
+                  const someDone = st.tasks.some((t) => t.done);
+                  return (
+                    <li key={s.key} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className={
+                          "flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-semibold " +
+                          (allDone ? "bg-success text-success-foreground border-success" : someDone ? "bg-warning/30 border-warning text-warning-foreground" : "bg-muted text-muted-foreground")
+                        }>
+                          {allDone ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3 w-3" />}
+                        </div>
+                        {idx < WORKFLOW_STEPS.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
+                      </div>
+                      <div className="flex-1 pb-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">{idx + 1}. {s.label}</p>
+                          {allDone && <span className="text-[10px] text-success">Complété</span>}
+                        </div>
+                        <ul className="mt-1.5 space-y-1.5">
+                          {st.tasks.map((t, ti) => (
+                            <li key={ti} className="flex items-start gap-2">
+                              <Checkbox
+                                checked={t.done}
+                                onCheckedChange={() => actions.toggleOrderTask(o.id, s.key, ti)}
+                                className="mt-0.5"
+                              />
+                              <span className={"text-xs " + (t.done ? "line-through text-muted-foreground" : "")}>{t.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+
+            <div className="rounded-md border">
+              <div className="px-3 py-2 border-b text-xs font-medium text-muted-foreground uppercase">Détails articles</div>
               <div className="divide-y">
-                {order.details.map((d, i) => (
+                {o.details.map((d, i) => (
                   <div key={i} className="px-3 py-2 flex items-center justify-between text-sm">
                     <span>{d.name}</span>
                     <span className="text-muted-foreground">{d.qty} × {d.price} MAD</span>
