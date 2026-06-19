@@ -596,27 +596,43 @@ function CreatePostDialog({ open, onClose, initialDate = "" }: { open: boolean; 
                 <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-success grid place-items-center text-white text-xs font-bold">F+</div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold">Foodplus</p>
-                  <p className="text-[11px] text-muted-foreground">{date} · {tone}</p>
+                  <p className="text-[11px] text-muted-foreground">{date} · {time} · {tone}</p>
                 </div>
                 <div className="flex gap-1">{platforms.map((p) => <Badge key={p} variant="outline" className="gap-1">{platformIcon(p)}{p}</Badge>)}</div>
               </div>
-              {images.filter(Boolean).length > 0 && (
-                <div className={`grid gap-0.5 ${images.filter(Boolean).length === 1 ? "grid-cols-1" : images.filter(Boolean).length === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
-                  {images.filter(Boolean).map((desc, i) => (
-                    <img key={i} src={imgUrl(previewId, i, 600, 600)} alt={desc} className="aspect-square w-full object-cover" loading="lazy" />
+              {imageCount > 0 && (
+                <div className={`grid gap-2 p-3 ${imageCount === 1 ? "grid-cols-1" : imageCount === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
+                  {Array.from({ length: imageCount }).map((_, i) => (
+                    <figure key={i} className="space-y-1">
+                      <img src={imgUrl(previewId, i, 600, 600)} alt={images[i] || `Visuel ${i + 1}`} className="aspect-square w-full object-cover rounded-md border" loading="lazy" />
+                      <figcaption className="text-[11px] text-muted-foreground italic line-clamp-2">
+                        {images[i]?.trim() ? `Légende : ${images[i]}` : <span className="opacity-60">Aucune légende</span>}
+                      </figcaption>
+                    </figure>
                   ))}
                 </div>
               )}
-              <div className="p-3 space-y-2">
+              <div className="p-3 space-y-2 border-t">
                 <p className="font-semibold">{title}</p>
                 {description && <p className="whitespace-pre-wrap text-foreground/90">{description}</p>}
                 {hashtags.length > 0 && <p className="text-primary text-xs">{hashtags.join(" ")}</p>}
               </div>
             </div>
 
+            <div className="rounded-md border p-3 grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Jour de publication</label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Heure</label>
+                <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+              </div>
+            </div>
+
             <div className="flex flex-wrap gap-2 pt-1">
               <Button onClick={() => finalize("published")}><Send className="h-4 w-4" />Publier maintenant</Button>
-              <Button variant="secondary" onClick={() => finalize("scheduled")}><Calendar className="h-4 w-4" />Planifier au {date}</Button>
+              <Button variant="secondary" onClick={() => finalize("scheduled")}><Calendar className="h-4 w-4" />Planifier le {date} à {time}</Button>
               <Button variant="outline" onClick={() => setStep("form")}>← Modifier</Button>
             </div>
           </div>
