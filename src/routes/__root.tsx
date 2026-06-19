@@ -10,7 +10,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { Toaster } from "@/components/ui/sonner";
-import { Button } from "@/components/ui/button";
+
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
