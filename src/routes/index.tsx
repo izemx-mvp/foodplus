@@ -146,8 +146,11 @@ function ChartBars() {
   return (
     <div className="flex h-40 items-end gap-2">
       {data.map((v, i) => (
-        <div key={i} className="flex-1 flex flex-col items-center gap-1">
-          <div className="w-full rounded-t bg-gradient-to-t from-primary to-info transition-all hover:opacity-80" style={{ height: `${(v / max) * 100}%` }} />
+        <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+          <div
+            className="w-full rounded-t bg-gradient-to-t from-primary to-info transition-all hover:opacity-80"
+            style={{ height: `${(v / max) * 100}%`, minHeight: "4px" }}
+          />
           <span className="text-[10px] text-muted-foreground">S{i + 1}</span>
         </div>
       ))}
