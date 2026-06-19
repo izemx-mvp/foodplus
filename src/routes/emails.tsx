@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/StatusBadge";
-import { BrandLogo } from "@/components/BrandLogo";
 import { useStore, actions } from "@/lib/store";
 import type { Email } from "@/lib/mock-data";
 import { Sparkles, Reply, ListTodo, Mail as MailIcon } from "lucide-react";
@@ -37,7 +36,7 @@ function EmailsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2"><BrandLogo brand="gmail" className="h-6 w-6" /> Inbox Foodplus</h1>
+          <h1 className="text-2xl font-semibold flex items-center gap-2"><MailIcon className="h-6 w-6 text-primary" /> Inbox Foodplus</h1>
           <p className="text-sm text-muted-foreground">{emails.filter(e => e.unread).length} non-lus · synchronisé via Gmail</p>
         </div>
         <Button variant="outline" onClick={() => toast.success("Inbox synchronisée")}><MailIcon className="h-4 w-4" /> Synchroniser</Button>

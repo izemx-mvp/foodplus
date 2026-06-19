@@ -1,10 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useStore, actions } from "@/lib/store";
-import type { OrderStatus } from "@/lib/mock-data";
-import { Package, Truck, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ORDER_STATUSES, type Order, type OrderStatus } from "@/lib/mock-data";
+import { Package, Truck, CheckCircle2, AlertTriangle, List, KanbanSquare, GripVertical, MapPin, User, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/orders")({
@@ -12,35 +17,42 @@ export const Route = createFileRoute("/orders")({
   component: OrdersPage,
 });
 
-const tone = (s: OrderStatus) => s === "delivered" ? "success" : s === "in_progress" ? "info" : s === "preparation" ? "warning" : "destructive";
-const label = (s: OrderStatus) => ({ delivered: "Livré", in_progress: "En cours", preparation: "Préparation", delayed: "Retard" }[s]);
-
-const FLOW: OrderStatus[] = ["preparation", "in_progress", "delivered"];
+const statusMeta = (s: OrderStatus) => ORDER_STATUSES.find((x) => x.key === s)!;
 
 function OrdersPage() {
   const orders = useStore((s) => s.orders);
+  const [view, setView] = useState<"list" | "kanban">("list");
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<string>("all");
+  const [selected, setSelected] = useState<Order | null>(null);
+
+  const filtered = useMemo(() => orders.filter((o) => {
+    if (q && ![o.id, o.client, o.city].join(" ").toLowerCase().includes(q.toLowerCase())) return false;
+    if (status !== "all" && o.status !== status) return false;
+    return true;
+  }), [orders, q, status]);
+
   const totals = {
-    delivered: orders.filter(o => o.status === "delivered").length,
-    inProgress: orders.filter(o => o.status === "in_progress").length,
-    prep: orders.filter(o => o.status === "preparation").length,
-    delayed: orders.filter(o => o.status === "delayed").length,
+    prep: orders.filter((o) => o.status === "preparation").length,
+    inProgress: orders.filter((o) => o.status === "in_progress").length,
+    delivered: orders.filter((o) => o.status === "delivered").length,
+    delayed: orders.filter((o) => o.status === "delayed").length,
   };
   const ca = orders.reduce((s, o) => s + o.amount, 0);
 
-  const next = (id: string, current: OrderStatus) => {
-    const idx = FLOW.indexOf(current);
-    if (idx < FLOW.length - 1) {
-      const ns = FLOW[idx + 1];
-      actions.updateOrder(id, { status: ns });
-      toast.success(`Commande ${id} → ${label(ns)}`);
-    } else toast.info("Commande déjà livrée");
-  };
-
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold">Commandes & Logistique</h1>
-        <p className="text-sm text-muted-foreground">{orders.length} commandes · CA total {(ca/1000).toFixed(0)}K MAD</p>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Commandes & Logistique</h1>
+          <p className="text-sm text-muted-foreground">{orders.length} commandes · CA total {(ca / 1000).toFixed(0)}K MAD</p>
+        </div>
+        <Tabs value={view} onValueChange={(v) => setView(v as "list" | "kanban")}>
+          <TabsList>
+            <TabsTrigger value="list"><List className="h-3.5 w-3.5 mr-1" />Liste</TabsTrigger>
+            <TabsTrigger value="kanban"><KanbanSquare className="h-3.5 w-3.5 mr-1" />Kanban</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-4">
@@ -51,47 +63,164 @@ function OrdersPage() {
       </div>
 
       <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 text-left">N° Commande</th>
-                  <th className="px-4 py-3 text-left">Client</th>
-                  <th className="px-4 py-3 text-left">Ville</th>
-                  <th className="px-4 py-3 text-right">Montant</th>
-                  <th className="px-4 py-3 text-center">Articles</th>
-                  <th className="px-4 py-3 text-left">Date</th>
-                  <th className="px-4 py-3 text-left">Statut</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((o) => (
-                  <tr key={o.id} className="border-t hover:bg-muted/30">
-                    <td className="px-4 py-3 font-mono text-xs font-medium">{o.id}</td>
-                    <td className="px-4 py-3">{o.client}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{o.city}</td>
-                    <td className="px-4 py-3 text-right font-medium">{o.amount.toLocaleString()} MAD</td>
-                    <td className="px-4 py-3 text-center text-muted-foreground">{o.items}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{o.date}</td>
-                    <td className="px-4 py-3"><StatusBadge tone={tone(o.status)}>{label(o.status)}</StatusBadge></td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-1">
-                        {o.status === "delayed" ? (
-                          <Button size="sm" variant="outline" onClick={() => { actions.updateOrder(o.id, { status: "in_progress" }); toast.success("Relance logistique envoyée"); }}>Relancer</Button>
-                        ) : (
-                          <Button size="sm" variant="outline" onClick={() => next(o.id, o.status)}>Étape suivante</Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <CardContent className="p-3 flex flex-wrap items-center gap-2">
+          <Input placeholder="Rechercher N°, client, ville…" value={q} onChange={(e) => setQ(e.target.value)} className="w-64" />
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous statuts</SelectItem>
+              {ORDER_STATUSES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
+
+      {view === "list" ? (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 text-left">N°</th>
+                    <th className="px-4 py-3 text-left">Client</th>
+                    <th className="px-4 py-3 text-left">Ville</th>
+                    <th className="px-4 py-3 text-right">Montant</th>
+                    <th className="px-4 py-3 text-center">Articles</th>
+                    <th className="px-4 py-3 text-left">Date</th>
+                    <th className="px-4 py-3 text-left">Statut</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((o) => {
+                    const m = statusMeta(o.status);
+                    return (
+                      <tr key={o.id} className="border-t hover:bg-muted/30 cursor-pointer" onClick={() => setSelected(o)}>
+                        <td className="px-4 py-3 font-mono text-xs font-medium">{o.id}</td>
+                        <td className="px-4 py-3">{o.client}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{o.city}</td>
+                        <td className="px-4 py-3 text-right font-medium">{o.amount.toLocaleString()} MAD</td>
+                        <td className="px-4 py-3 text-center text-muted-foreground">{o.items}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{o.date}</td>
+                        <td className="px-4 py-3"><StatusBadge tone={m.tone}>{m.label}</StatusBadge></td>
+                      </tr>
+                    );
+                  })}
+                  {filtered.length === 0 && (
+                    <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">Aucune commande.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <KanbanOrders orders={filtered} onSelect={setSelected} />
+      )}
+
+      <OrderDialog order={selected} onClose={() => setSelected(null)} />
     </div>
+  );
+}
+
+function KanbanOrders({ orders, onSelect }: { orders: Order[]; onSelect: (o: Order) => void }) {
+  const [dragging, setDragging] = useState<string | null>(null);
+  const drop = (s: OrderStatus) => {
+    if (!dragging) return;
+    actions.updateOrder(dragging, { status: s });
+    toast.success(`Commande → ${statusMeta(s).label}`);
+    setDragging(null);
+  };
+  return (
+    <div className="grid gap-3 lg:grid-cols-4 md:grid-cols-2">
+      {ORDER_STATUSES.map((s) => {
+        const cards = orders.filter((o) => o.status === s.key);
+        const total = cards.reduce((sum, o) => sum + o.amount, 0);
+        return (
+          <div key={s.key}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => drop(s.key)}
+            className="rounded-lg border bg-muted/30 p-2 min-h-[400px]">
+            <div className="flex items-center justify-between px-1 pb-2">
+              <div className="flex items-center gap-2">
+                <StatusBadge tone={s.tone}>{s.label}</StatusBadge>
+                <span className="text-xs text-muted-foreground">{cards.length}</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground">{(total / 1000).toFixed(0)}K</span>
+            </div>
+            <div className="space-y-2">
+              {cards.map((o) => (
+                <div key={o.id}
+                  draggable
+                  onDragStart={() => setDragging(o.id)}
+                  onDragEnd={() => setDragging(null)}
+                  onClick={() => onSelect(o)}
+                  className="cursor-grab rounded-md border bg-card p-3 text-sm shadow-sm hover:shadow-md active:cursor-grabbing">
+                  <div className="flex items-start gap-2">
+                    <GripVertical className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-mono text-[10px] text-muted-foreground">{o.id}</p>
+                      <p className="font-medium truncate">{o.client}</p>
+                      <div className="mt-2 flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{o.city}</span>
+                        <span className="font-medium">{(o.amount / 1000).toFixed(0)}K</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function OrderDialog({ order, onClose }: { order: Order | null; onClose: () => void }) {
+  return (
+    <Dialog open={!!order} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        {order && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>{order.id} · {order.client}</span>
+                <Button size="icon" variant="ghost" onClick={onClose}><X className="h-4 w-4" /></Button>
+              </DialogTitle>
+              <DialogDescription>{order.date} · {order.city}</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 sm:grid-cols-2 text-sm">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" />{order.address}</div>
+                <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" />Livreur : {order.driver}</div>
+                <div>Total : <span className="font-semibold">{order.amount.toLocaleString()} MAD</span></div>
+                <div>Articles : <span className="font-semibold">{order.items}</span></div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground">Statut</label>
+                <Select value={order.status} onValueChange={(v) => { actions.updateOrder(order.id, { status: v as OrderStatus }); toast.success(`Statut → ${statusMeta(v as OrderStatus).label}`); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ORDER_STATUSES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="rounded-md border">
+              <div className="px-3 py-2 border-b text-xs font-medium text-muted-foreground uppercase">Détails</div>
+              <div className="divide-y">
+                {order.details.map((d, i) => (
+                  <div key={i} className="px-3 py-2 flex items-center justify-between text-sm">
+                    <span>{d.name}</span>
+                    <span className="text-muted-foreground">{d.qty} × {d.price} MAD</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import {
-  initialLeads, initialOrders, initialEmails, initialPosts, initialDeals,
-  type Lead, type Order, type Email, type SocialPost, type Deal, type IntegrationKey,
+  initialLeads, initialOrders, initialEmails, initialPosts, initialIdeas, initialMarketingConfig,
+  type Lead, type Order, type Email, type SocialPost, type PostIdea, type MarketingConfig,
 } from "./mock-data";
 
 type State = {
@@ -9,8 +9,8 @@ type State = {
   orders: Order[];
   emails: Email[];
   posts: SocialPost[];
-  deals: Deal[];
-  integrations: Record<IntegrationKey, boolean>;
+  ideas: PostIdea[];
+  marketing: MarketingConfig;
 };
 
 const state: State = {
@@ -18,17 +18,8 @@ const state: State = {
   orders: initialOrders,
   emails: initialEmails,
   posts: initialPosts,
-  deals: initialDeals,
-  integrations: {
-    gmail: true,
-    sheets: true,
-    calendar: false,
-    whatsapp: true,
-    facebook: false,
-    instagram: true,
-    linkedin: false,
-    crm: true,
-  },
+  ideas: initialIdeas,
+  marketing: initialMarketingConfig,
 };
 
 const listeners = new Set<() => void>();
@@ -44,10 +35,6 @@ export const actions = {
     emit();
   },
   addLead: (lead: Lead) => { state.leads = [lead, ...state.leads]; emit(); },
-  moveDeal: (id: string, stage: Deal["stage"]) => {
-    state.deals = state.deals.map((d) => (d.id === id ? { ...d, stage } : d));
-    emit();
-  },
   updateOrder: (id: string, patch: Partial<Order>) => {
     state.orders = state.orders.map((o) => (o.id === id ? { ...o, ...patch } : o));
     emit();
@@ -61,8 +48,11 @@ export const actions = {
     state.posts = state.posts.map((p) => (p.id === id ? { ...p, ...patch } : p));
     emit();
   },
-  toggleIntegration: (key: IntegrationKey) => {
-    state.integrations[key] = !state.integrations[key];
+  removePost: (id: string) => { state.posts = state.posts.filter((p) => p.id !== id); emit(); },
+  addIdeas: (ideas: PostIdea[]) => { state.ideas = [...ideas, ...state.ideas]; emit(); },
+  removeIdea: (id: string) => { state.ideas = state.ideas.filter((i) => i.id !== id); emit(); },
+  updateMarketingConfig: (patch: Partial<MarketingConfig>) => {
+    state.marketing = { ...state.marketing, ...patch };
     emit();
   },
 };
