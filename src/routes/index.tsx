@@ -60,6 +60,7 @@ function Dashboard() {
       });
     }
     toast.success("3 nouveaux leads générés par IA", { description: "Sources : LinkedIn Sales Nav + Annuaire CGEM" });
+    navigate({ to: "/leads" });
   };
 
   const recentActivity = [
