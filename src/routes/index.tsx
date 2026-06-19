@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useStore, actions } from "@/lib/store";
@@ -18,6 +18,7 @@ export const Route = createFileRoute("/")({
 function Dashboard() {
   const leads = useStore((s) => s.leads);
   const orders = useStore((s) => s.orders);
+  const navigate = useNavigate();
   const [refreshing, setRefreshing] = useState(false);
 
   const qualified = leads.filter((l) => l.status === "qualified" || l.status === "negotiation").length;
@@ -29,10 +30,10 @@ function Dashboard() {
   const pipeline = leads.filter((l) => l.status !== "lost" && l.status !== "won").reduce((s, l) => s + l.value, 0);
 
   const kpis = [
-    { label: "Leads générés", value: leads.length, delta: "+12%", up: true, icon: Users, iconClass: "bg-info/15 text-info" },
-    { label: "Leads qualifiés", value: qualified, delta: "+8%", up: true, icon: Target, iconClass: "bg-warning/20 text-warning-foreground" },
-    { label: "Taux de conversion", value: `${conversion}%`, delta: "+3.2pts", up: true, icon: TrendingUp, iconClass: "bg-success/15 text-success" },
-    { label: "Commandes livrées", value: `${delivered}/${orders.length}`, delta: `${delayed} retard`, up: delayed === 0, icon: Package, iconClass: delayed > 0 ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success" },
+    { label: "Leads générés", value: leads.length, delta: "+12%", up: true, icon: Users, iconClass: "bg-info/15 text-info", to: "/leads" as const },
+    { label: "Leads qualifiés", value: qualified, delta: "+8%", up: true, icon: Target, iconClass: "bg-warning/20 text-warning-foreground", to: "/leads" as const },
+    { label: "Taux de conversion", value: `${conversion}%`, delta: "+3.2pts", up: true, icon: TrendingUp, iconClass: "bg-success/15 text-success", to: "/leads" as const },
+    { label: "Commandes livrées", value: `${delivered}/${orders.length}`, delta: `${delayed} retard`, up: delayed === 0, icon: Package, iconClass: delayed > 0 ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success", to: "/orders" as const },
   ];
 
   const handleRefresh = () => {
@@ -59,15 +60,16 @@ function Dashboard() {
       });
     }
     toast.success("3 nouveaux leads générés par IA", { description: "Sources : LinkedIn Sales Nav + Annuaire CGEM" });
+    navigate({ to: "/leads" });
   };
 
   const recentActivity = [
-    { tone: "success" as const, text: "Commande CMD-2406 livrée à Cantine OCP Agadir" },
-    { tone: "info" as const, text: "Nouveau lead chaud : Sofitel Tanger (score 95)" },
-    { tone: "warning" as const, text: "CMD-2404 en retard – Dar Zellij Fès" },
-    { tone: "linkedin" as const, text: "Post LinkedIn publié : 1.2K vues, 42 réactions" },
-    { tone: "instagram" as const, text: "Post Instagram en brouillon : Tajine du chef" },
-    { tone: "destructive" as const, text: "Lead perdu : Cafétéria Centrale (concurrence)" },
+    { tone: "success" as const, text: "Commande CMD-2406 livrée à Cantine OCP Agadir", to: "/orders" as const },
+    { tone: "info" as const, text: "Nouveau lead chaud : Sofitel Tanger (score 95)", to: "/leads" as const },
+    { tone: "warning" as const, text: "CMD-2404 en retard – Dar Zellij Fès", to: "/orders" as const },
+    { tone: "linkedin" as const, text: "Post LinkedIn publié : 1.2K vues, 42 réactions", to: "/marketing" as const },
+    { tone: "instagram" as const, text: "Post Instagram en brouillon : Tajine du chef", to: "/marketing" as const },
+    { tone: "destructive" as const, text: "Lead perdu : Cafétéria Centrale (concurrence)", to: "/leads" as const },
   ];
 
   return (
@@ -84,7 +86,7 @@ function Dashboard() {
           <Button variant="outline" onClick={handleGenerateLeads}>
             <Sparkles className="h-4 w-4" /> Générer leads
           </Button>
-          <Button onClick={() => toast.success("Campagne IA lancée", { description: "Génération de 12 posts multi-canaux en cours…" })}>
+          <Button onClick={() => { toast.success("Campagne IA lancée", { description: "Génération de 12 posts multi-canaux en cours…" }); navigate({ to: "/marketing" }); }}>
             <Megaphone className="h-4 w-4" /> Lancer campagne IA
           </Button>
         </div>
@@ -92,7 +94,7 @@ function Dashboard() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
-          <Card key={k.label} className="overflow-hidden">
+          <Card key={k.label} className="overflow-hidden cursor-pointer transition-shadow hover:shadow-md" onClick={() => navigate({ to: k.to })}>
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div>
@@ -132,10 +134,10 @@ function Dashboard() {
           <CardHeader><CardTitle className="text-base">Activité récente</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {recentActivity.map((a, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm">
+              <button key={i} onClick={() => navigate({ to: a.to })} className="flex w-full items-start gap-2 rounded-md p-1 text-left text-sm transition-colors hover:bg-muted/60">
                 <StatusBadge tone={a.tone}>•</StatusBadge>
                 <span className="flex-1 text-muted-foreground">{a.text}</span>
-              </div>
+              </button>
             ))}
           </CardContent>
         </Card>
