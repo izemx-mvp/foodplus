@@ -202,6 +202,16 @@ const mk = (s: Seed): Order => {
   const wf = buildWorkflow(s.status);
   const cutoff = STATUS_TO_STEP_INDEX[s.status];
   const currentStep = STEP_BY_INDEX[Math.min(cutoff, 8)];
+  // Assign a default owner per step based on its role
+  const billingLead = TEAM.facturation[0];
+  (Object.keys(wf) as WorkflowStepKey[]).forEach((k) => {
+    const role = STEP_ROLE[k];
+    const fallback = role === "commercial" ? s.commercial
+      : role === "adv" ? s.adv
+      : role === "logistique" ? (s.driver && s.driver !== "—" ? s.driver : TEAM.logistique[0])
+      : billingLead;
+    wf[k] = { ...wf[k], owner: wf[k].owner ?? fallback };
+  });
   const subtotal = Math.round(s.amount / 1.2);
   const tax = s.amount - subtotal;
   const paid = s.invoiceStatus === "paid" ? s.amount : s.invoiceStatus === "pending" ? Math.round(s.amount * 0.3) : 0;
@@ -209,6 +219,10 @@ const mk = (s: Seed): Order => {
   return {
     id: s.id, client: s.client, city: s.city, amount: s.amount, items: s.items, status: s.status, date: s.date,
     stage: s.stage, address: s.address, driver: s.driver, details, workflow: wf,
+    priority: s.priority, commercial: s.commercial, adv: s.adv, warehouse: s.warehouse,
+    clientInfo: { ice: s.ice, address: s.address, phone: s.phone, email: s.email },
+    dueDate: s.dueDate, subtotal, tax, paid, currentStep,
+    invoiceStatus: s.invoiceStatus,
     priority: s.priority, commercial: s.commercial, adv: s.adv, warehouse: s.warehouse,
     clientInfo: { ice: s.ice, address: s.address, phone: s.phone, email: s.email },
     dueDate: s.dueDate, subtotal, tax, paid, currentStep,
