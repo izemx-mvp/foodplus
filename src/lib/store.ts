@@ -39,6 +39,18 @@ export const actions = {
     state.orders = state.orders.map((o) => (o.id === id ? { ...o, ...patch } : o));
     emit();
   },
+  toggleOrderTask: (id: string, step: string, taskIndex: number) => {
+    state.orders = state.orders.map((o) => {
+      if (o.id !== id) return o;
+      const wf = { ...o.workflow };
+      const key = step as keyof typeof wf;
+      const s = wf[key];
+      if (!s) return o;
+      wf[key] = { tasks: s.tasks.map((t, i) => (i === taskIndex ? { ...t, done: !t.done } : t)) };
+      return { ...o, workflow: wf };
+    });
+    emit();
+  },
   markEmailRead: (id: string) => {
     state.emails = state.emails.map((e) => (e.id === id ? { ...e, unread: false } : e));
     emit();
