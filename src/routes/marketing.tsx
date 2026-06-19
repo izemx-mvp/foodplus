@@ -61,60 +61,95 @@ function MarketingPage() {
   );
 }
 
+const FREQ_OPTIONS: { value: PostFrequency; label: string }[] = [
+  { value: "daily", label: "Quotidien" },
+  { value: "3xweek", label: "3× / semaine" },
+  { value: "weekly", label: "Hebdomadaire" },
+  { value: "monthly", label: "Mensuel" },
+  { value: "off", label: "Désactivé" },
+];
+
 function ConfigTab() {
   const config = useStore((s) => s.marketing);
   const [website, setWebsite] = useState(config.website);
   const [logo, setLogo] = useState(config.logo);
   const [description, setDescription] = useState(config.description);
-  const [tone, setTone] = useState<PostTone>(config.tone);
-  const [frequency, setFrequency] = useState(config.frequency);
+  const [integrations, setIntegrations] = useState<IntegrationConfig[]>(config.integrations);
+
+  const patchIntegration = (platform: SocialPlatform, patch: Partial<IntegrationConfig>) =>
+    setIntegrations((cur) => cur.map((i) => (i.platform === platform ? { ...i, ...patch } : i)));
 
   const save = () => {
-    actions.updateMarketingConfig({ website, logo, description, tone, frequency });
+    actions.updateMarketingConfig({ website, logo, description, integrations });
     toast.success("Configuration enregistrée");
   };
 
   return (
-    <Card>
-      <CardHeader><CardTitle className="text-base">Paramètres de marque</CardTitle></CardHeader>
-      <CardContent className="space-y-4 max-w-2xl">
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Site web</label>
-          <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://foodplus.ma" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Logo (URL)</label>
-          <Input value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="https://…/logo.png" />
-          {logo && <img src={logo} alt="logo" className="h-12 mt-2 rounded border" onError={(e) => (e.currentTarget.style.display = "none")} />}
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Description de Foodplus</label>
-          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+    <div className="space-y-4">
+      <Card>
+        <CardHeader><CardTitle className="text-base">Paramètres de marque</CardTitle></CardHeader>
+        <CardContent className="space-y-4 max-w-2xl">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Tonalité par défaut</label>
-            <Select value={tone} onValueChange={(v) => setTone(v as PostTone)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{TONES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-            </Select>
+            <label className="text-xs font-medium">Site web</label>
+            <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://foodplus.ma" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Fréquence auto-génération</label>
-            <Select value={frequency} onValueChange={(v) => setFrequency(v as typeof frequency)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Quotidien</SelectItem>
-                <SelectItem value="3xweek">3× par semaine</SelectItem>
-                <SelectItem value="weekly">Hebdomadaire</SelectItem>
-                <SelectItem value="monthly">Mensuel</SelectItem>
-              </SelectContent>
-            </Select>
+            <label className="text-xs font-medium">Logo (URL)</label>
+            <Input value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="https://…/logo.png" />
+            {logo && <img src={logo} alt="logo" className="h-12 mt-2 rounded border" onError={(e) => (e.currentTarget.style.display = "none")} />}
           </div>
-        </div>
-        <Button onClick={save}>Enregistrer</Button>
-      </CardContent>
-    </Card>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Description de Foodplus</label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Intégrations réseaux sociaux</CardTitle>
+          <p className="text-xs text-muted-foreground">Chaque réseau a sa propre tonalité et fréquence de publication.</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {integrations.map((it) => {
+            const meta = PLATFORMS.find((p) => p.key === it.platform)!;
+            return (
+              <div key={it.platform} className="rounded-lg border p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className={`grid h-8 w-8 place-items-center rounded-md text-white ${meta.color}`}>{platformIcon(it.platform)}</div>
+                    <div>
+                      <p className="font-medium text-sm">{meta.label}</p>
+                      <p className="text-[11px] text-muted-foreground">{it.enabled ? "Actif" : "Désactivé"}</p>
+                    </div>
+                  </div>
+                  <Switch checked={it.enabled} onCheckedChange={(v) => patchIntegration(it.platform, { enabled: v })} />
+                </div>
+                {it.enabled && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium">Tonalité</label>
+                      <Select value={it.tone} onValueChange={(v) => patchIntegration(it.platform, { tone: v as PostTone })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{TONES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium">Fréquence</label>
+                      <Select value={it.frequency} onValueChange={(v) => patchIntegration(it.platform, { frequency: v as PostFrequency })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{FREQ_OPTIONS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <Button onClick={save} className="mt-2">Enregistrer la configuration</Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
