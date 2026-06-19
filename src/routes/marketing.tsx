@@ -475,7 +475,7 @@ function CreatePostDialog({ open, onClose, initialDate = "" }: { open: boolean; 
   const [title, setTitle] = useState("");
   const [platforms, setPlatforms] = useState<SocialPlatform[]>(["instagram"]);
   const [date, setDate] = useState(initialDate || new Date().toISOString().slice(0, 10));
-  useMemo(() => { if (initialDate) setDate(initialDate); }, [initialDate]);
+  useEffect(() => { if (initialDate) setDate(initialDate); }, [initialDate]);
 
   const setCount = (n: number) => {
     const v = Math.max(0, Math.min(10, n));
